@@ -3,114 +3,136 @@
 
 #include "stdafx.h"
 
-#include <vector>
+#include "heap.h"
+
 #include <functional>
-
-template < class T, class K, class A = std::allocator<T>>
-class Heap {
- public:
-  typedef T Type;
-  typedef K Comparator;
-  typedef A Allocator;
-
-  Heap() {}
-  ~Heap() {}
-
-  Type const & top() const {
-    return buffer_.front();
-  }
-  Type& top() {
-    return buffer_.front();
-  }
-
-  Type RemoveTop();
-
-  bool empty() const {
-    return buffer_.empty();
-  }
-
-  void clear() {
-    buffer_.clear();
-  }
-
-  void insert(Type const& value);
-
- private:
-  static int parent(int index) { return index / 2; }
-  static int right_child(int index) { return index * 2 + 1; }
-  static int left_child(int index) { return index * 2; }
- 
-  typedef std::vector<Type, A> Buffer;
-  Buffer buffer_;
-  Comparator less_;
-};
-
-template < class T, class K, class A >
-void Heap<T, K, A>::insert(Type const& value) {
-  int index = buffer_.size() + 1;
-  buffer_.push_back(value);
-
-  // Bubble-up the newly inserted item.
-  int parent_index = parent(index);
-  while (0 != parent_index &&
-         !less_(buffer_[parent_index - 1], value)) {
-    std::swap(buffer_[index - 1], buffer_[parent_index - 1]);
-    index = parent_index;
-    parent_index = parent(parent_index);
-  }
-}
-
-template < class T, class K, class A >
-typename Heap<T, K, A>::Type Heap<T, K, A>::RemoveTop() {
-  Type top_element = top();
-
-  std::swap(buffer_.back(), buffer_.front());
-  buffer_.pop_back();
-
-  // Trickle down
-  int index = 1;
-  int const last_index = buffer_.size() + 1;
-  for (;;) {
-    int const right_index = right_child(index);
-    int const left_index = left_child(index);
-
-    int min_index = index;
-    if (right_index < last_index &&
-        less_(buffer_[right_index - 1], buffer_[min_index - 1]))
-      min_index = right_index;
-    }
-
-    if (left_index < last_index &&
-        less_(buffer_[left_index - 1], buffer_[min_index - 1]))
-      min_index = left_index;
-    }
-
-    if (min_index != index) {
-      std::swap(buffer_[min_index - 1], buffer_[index - 1]);
-      index = min_index;
-    } else {
-      break;
-    }
-  }
-
-  return top_element;
-}
-
 #include <iostream>
 
 using namespace std;
 
-int _tmain(int argc, _TCHAR* argv[])
-{
-  Heap<int, std::less<int>> heap;
+#include "simulation_engine.h"
+#include "basic_processes.h"
 
-  for (int x = 0; x < 10000; ++x ) {
-    heap.insert(10 - x);
+class BasicTopologyBuilder : public SimulationBuilder {
+ public:
+  GeneratorProcess* generator1() { return input_1_; }
+  GeneratorProcess* generator2() { return input_2_; }
+
+  virtual void BuildSimulation(ProcessEnvironment* env) {
+
+    RandomConstant<1> random;
+    input_1_ = new GeneratorProcess(env->next_id(), &random);
+    input_1_->set_name("Input 1");
+    env->RegisterLogicalProcess(input_1_);
+#if 1
+    input_2_ = new GeneratorProcess(env->next_id(), &random);
+    input_2_->set_name("Input 2");
+    env->RegisterLogicalProcess(input_2_);
+#endif
+
+    input_3_ = new GeneratorProcess(env->next_id(), &random);
+    input_3_->set_name("Input 3");
+    env->RegisterLogicalProcess(input_3_);
+
+    middle_pipe_ = new PipelineProcess(env->next_id(), &random);
+    middle_pipe_->set_name("Middle Pipe");
+    env->RegisterLogicalProcess(middle_pipe_);
+
+    end_cap_ = new ConsumerProcess(env->next_id());
+    end_cap_->set_name("End Cap");
+    env->RegisterLogicalProcess(end_cap_);
+
+    input_1_->set_target(middle_pipe_->id());
+    input_1_->set_count(30);
+
+    input_2_->set_target(middle_pipe_->id());
+    input_2_->set_count(30);
+
+    input_3_->set_target(end_cap_->id());
+    input_3_->set_count(30);
+
+    middle_pipe_->set_target(end_cap_->id());
   }
 
-  while (!heap.empty()) {
-    cout << heap.top() << endl;
-    heap.RemoveTop();
+  virtual void PrimeSimulation(ProcessEnvironment* env) {
+    Event new_event;
+    new_event.set_payload(0);
+    new_event.set_type(42);
+
+    new_event.set_send_time_stamp(1000);
+    new_event.set_receive_time_stamp(1000);
+
+    new_event.set_target_process_id(input_1_->id());
+    new_event.set_sending_process_id(1234);
+
+    env->Send(new_event);
+
+    new_event.set_payload(10000);
+    new_event.set_type(43);
+
+    new_event.set_target_process_id(input_2_->id());
+    new_event.set_sending_process_id(1234);
+
+    env->Send(new_event);
+
+    new_event.set_payload(30000);
+    new_event.set_type(44);
+
+    new_event.set_target_process_id(input_3_->id());
+    new_event.set_sending_process_id(1234);
+
+    env->Send(new_event);
+  }
+ private:
+  GeneratorProcess *input_1_, *input_2_, *input_3_;
+  PipelineProcess *middle_pipe_;
+  ConsumerProcess *end_cap_;
+};
+
+int _tmain(int argc, _TCHAR* argv[]) {
+
+  SimulationEngine engine;
+  BasicTopologyBuilder simple_builder;
+
+  engine.Init(&simple_builder);
+
+  int step_count = 0;
+  while (step_count < 10) {
+    engine.TimeStep();
+    ++step_count;
+
+    if (step_count == 7) {
+      Event bogus_event;
+      bogus_event.set_receive_time_stamp(100);
+      bogus_event.set_send_time_stamp(100);
+      bogus_event.set_sending_process_id(-1);
+      bogus_event.set_payload(-1);
+      bogus_event.set_type(47);
+      bogus_event.set_target_process_id(simple_builder.generator1()->id());
+      engine.environment()->Send(bogus_event);
+    }
+  }
+
+  //simple_builder.generator1()->Inhibit();
+  //simple_builder.generator2()->Inhibit();
+
+  while (!engine.IsIdle()) {
+    engine.TimeStep();
+  }
+
+#if 1
+  Event bogus_event;
+  bogus_event.set_receive_time_stamp(0);
+  bogus_event.set_send_time_stamp(0);
+  bogus_event.set_sending_process_id(-1);
+  bogus_event.set_payload(20000);
+  bogus_event.set_type(666);
+  bogus_event.set_target_process_id(simple_builder.generator2()->id());
+  engine.environment()->Send(bogus_event);
+#endif
+
+  while (!engine.IsIdle()) {
+    engine.TimeStep();
   }
 
   return 0;
