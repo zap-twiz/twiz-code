@@ -6,6 +6,10 @@
 
 typedef unsigned long long Time;
 
+#define EVENT_CUSTOM_TYPE         0x1000
+#define EVENT_GVT_REQUEST_TYPE    (EVENT_CUSTOM_TYPE)
+#define EVENT_REMOTE_MESSAGE_ACK  (EVENT_GVT_REQUEST_TYPE + 1)
+
 class Event {
  public:
   int payload() const { return payload_; }

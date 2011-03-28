@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <iostream>
 
+#if 0
 namespace {
 
 void PositiveNegativeIntersect(std::vector<Event> const & pos_events,
@@ -50,6 +51,8 @@ void DoAnnihilation(std::vector<Event>& pos_events,
 }
 
 }  // namespace
+#endif
+
 
 void EventQueue::RegisterEvent(Event const & event) {
   if (heap_.size() > 100) {
@@ -58,6 +61,22 @@ void EventQueue::RegisterEvent(Event const & event) {
   heap_.insert(event);
 }
 
+void EventQueue::NextEvents(std::vector<Event>* events) {
+  assert(NULL != events);
+
+  if (heap_.empty())
+    return;
+
+  Event top = heap_.RemoveTop();
+  events->push_back(top);
+
+  while (!heap_.empty() &&
+         heap_.top().receive_time_stamp() == top.receive_time_stamp()) {
+    events->push_back(heap_.RemoveTop());
+  }
+}
+
+#if 0
 void EventQueue::NextEvents(std::vector<Event>* pos_events,
                             std::vector<Event>* neg_events) {
   assert(NULL != pos_events && NULL != neg_events);
@@ -85,8 +104,10 @@ void EventQueue::NextEvents(std::vector<Event>* pos_events,
     }
   }
 
+#if 0
   std::vector<Event> to_annihilate;
   PositiveNegativeIntersect(*pos_events, *neg_events, &to_annihilate);
-
   DoAnnihilation(*pos_events, *neg_events, to_annihilate);
+#endif
 }
+#endif

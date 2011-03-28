@@ -27,6 +27,7 @@ class State {
   State(Time time) : logical_time_(time) {}
   virtual ~State() {}
 
+  // Capture the logical time of a LP.
   void set_time(Time time) { logical_time_ = time; }
   Time time() const { return logical_time_; }
 
@@ -39,12 +40,20 @@ class LogicalProcess : public NamedEntity {
   LogicalProcess(int id) : NamedEntity(id), local_time_(0) {}
   virtual ~LogicalProcess();
 
-  void ProcessEvent(Event const & event,
-                    ProcessEnvironment* process_environment);
+  void ReceiveEvent(Event const & event);
+  void EvaluateInputQueue(ProcessEnvironment* process_environment);
 
   Time LogicalTime() const { return local_time_; }
 
  protected:
+  // Returns true if the event was processed, false if it needs to be deferred
+  bool ProcessEvent(Event const & event,
+                    ProcessEnvironment* process_environment);
+  bool ProcessFutureEvent(Event const & event,
+                          ProcessEnvironment* process_environment);
+  bool ProcessHistoricalEvent(Event const & event,
+                              ProcessEnvironment* process_environment);
+
   void Rollback(Time time, std::vector<Event>* to_re_evaluate,
                 ProcessEnvironment* process_environment);
 
@@ -68,12 +77,13 @@ class LogicalProcess : public NamedEntity {
 
   void PushState(State* state) { states_.push_back(state); }
 
+  std::vector<Event> input_queue_;
+
   std::vector<Event> processed_events_;
+  std::vector<State*> states_;
 
   std::vector<Event> locally_sent_events_;
-  
   std::vector< std::vector<Event> > sent_events_;
-  std::vector<State*> states_;
 
   Time local_time_;
 };

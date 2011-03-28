@@ -8,99 +8,37 @@
 #include <functional>
 #include <iostream>
 
-using namespace std;
+//using namespace std;
 
 #include "simulation_engine.h"
-#include "basic_processes.h"
-
-class BasicTopologyBuilder : public SimulationBuilder {
- public:
-  GeneratorProcess* generator1() { return input_1_; }
-  GeneratorProcess* generator2() { return input_2_; }
-
-  virtual void BuildSimulation(ProcessEnvironment* env) {
-
-    RandomConstant<1> random;
-    input_1_ = new GeneratorProcess(env->next_id(), &random);
-    input_1_->set_name("Input 1");
-    env->RegisterLogicalProcess(input_1_);
-#if 1
-    input_2_ = new GeneratorProcess(env->next_id(), &random);
-    input_2_->set_name("Input 2");
-    env->RegisterLogicalProcess(input_2_);
-#endif
-
-    input_3_ = new GeneratorProcess(env->next_id(), &random);
-    input_3_->set_name("Input 3");
-    env->RegisterLogicalProcess(input_3_);
-
-    middle_pipe_ = new PipelineProcess(env->next_id(), &random);
-    middle_pipe_->set_name("Middle Pipe");
-    env->RegisterLogicalProcess(middle_pipe_);
-
-    end_cap_ = new ConsumerProcess(env->next_id());
-    end_cap_->set_name("End Cap");
-    env->RegisterLogicalProcess(end_cap_);
-
-    input_1_->set_target(middle_pipe_->id());
-    input_1_->set_count(30);
-
-    input_2_->set_target(middle_pipe_->id());
-    input_2_->set_count(30);
-
-    input_3_->set_target(end_cap_->id());
-    input_3_->set_count(30);
-
-    middle_pipe_->set_target(end_cap_->id());
-  }
-
-  virtual void PrimeSimulation(ProcessEnvironment* env) {
-    Event new_event;
-    new_event.set_payload(0);
-    new_event.set_type(42);
-
-    new_event.set_send_time_stamp(1000);
-    new_event.set_receive_time_stamp(1000);
-
-    new_event.set_target_process_id(input_1_->id());
-    new_event.set_sending_process_id(1234);
-
-    env->Send(new_event);
-
-    new_event.set_payload(10000);
-    new_event.set_type(43);
-
-    new_event.set_target_process_id(input_2_->id());
-    new_event.set_sending_process_id(1234);
-
-    env->Send(new_event);
-
-    new_event.set_payload(30000);
-    new_event.set_type(44);
-
-    new_event.set_target_process_id(input_3_->id());
-    new_event.set_sending_process_id(1234);
-
-    env->Send(new_event);
-  }
- private:
-  GeneratorProcess *input_1_, *input_2_, *input_3_;
-  PipelineProcess *middle_pipe_;
-  ConsumerProcess *end_cap_;
-};
+#include "basic_topology_builder.h"
 
 int _tmain(int argc, _TCHAR* argv[]) {
 
-  SimulationEngine engine;
+  //SimulationEngine engines[2];
+  std::vector<SimulationEngine> engines;
+  engines.resize(2);
+
+
   BasicTopologyBuilder simple_builder;
 
-  engine.Init(&simple_builder);
+  PartitionedTopologyBuilder builder1(1, &engines),
+      builder2(2, &engines);
 
+  engines[0].Init(&builder1);
+  engines[1].Init(&builder2);
+
+  while (!(engines[0].IsIdle() || engines[1].IsIdle())) {
+    engines[0].TimeStep();
+    engines[1].TimeStep();
+  }
+
+#if 0
   int step_count = 0;
   while (step_count < 10) {
     engine.TimeStep();
     ++step_count;
-
+#if 1
     if (step_count == 7) {
       Event bogus_event;
       bogus_event.set_receive_time_stamp(100);
@@ -111,6 +49,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
       bogus_event.set_target_process_id(simple_builder.generator1()->id());
       engine.environment()->Send(bogus_event);
     }
+#endif
   }
 
   //simple_builder.generator1()->Inhibit();
@@ -134,6 +73,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
   while (!engine.IsIdle()) {
     engine.TimeStep();
   }
+#endif
 
   return 0;
 }
