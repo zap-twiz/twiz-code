@@ -30,9 +30,10 @@ class SimulationEngine {
   void TimeStep();
 
   bool IsIdle() const {
-    return environment()->Idle(); 
+    return environment()->IsIdle(); 
   }
 
+  // Note that this is the MINIMUM virtual time
   Time LocalVirtualTime() const;
   void ReceiveGlobalVirtualTime(Time gvt);
 

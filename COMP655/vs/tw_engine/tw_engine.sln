@@ -8,6 +8,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "single_proc_tw", "..\single
 		{2B98B7B9-3E07-4AA2-BA9D-FE7B9D7C1A72} = {2B98B7B9-3E07-4AA2-BA9D-FE7B9D7C1A72}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mpi_tw", "..\mpi_tw\mpi_tw.vcxproj", "{49C5E628-B76A-4788-AA66-66C420865C1D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2B98B7B9-3E07-4AA2-BA9D-FE7B9D7C1A72} = {2B98B7B9-3E07-4AA2-BA9D-FE7B9D7C1A72}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -22,6 +27,10 @@ Global
 		{E86661E5-1709-4698-B373-9620CF5C9540}.Debug|Win32.Build.0 = Debug|Win32
 		{E86661E5-1709-4698-B373-9620CF5C9540}.Release|Win32.ActiveCfg = Release|Win32
 		{E86661E5-1709-4698-B373-9620CF5C9540}.Release|Win32.Build.0 = Release|Win32
+		{49C5E628-B76A-4788-AA66-66C420865C1D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{49C5E628-B76A-4788-AA66-66C420865C1D}.Debug|Win32.Build.0 = Debug|Win32
+		{49C5E628-B76A-4788-AA66-66C420865C1D}.Release|Win32.ActiveCfg = Release|Win32
+		{49C5E628-B76A-4788-AA66-66C420865C1D}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

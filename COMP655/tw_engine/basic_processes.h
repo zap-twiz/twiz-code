@@ -73,7 +73,7 @@ class ConsumerProcess : public LogicalProcess {
   ConsumerProcess(int id) : LogicalProcess(id) {}
   virtual Time Evaluate(Event const & event,
                         ProcessEnvironment* process_environment) {
-#if 0
+#if 1
     std::cout << "Consumer Received:  " << event.receive_time_stamp() <<
         " data: " << event.payload() << " type: " << event.type() << std::endl;
 #endif

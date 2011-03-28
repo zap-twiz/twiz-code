@@ -97,7 +97,6 @@ void LogicalProcess::EvaluateInputQueue(
   ResolveInputQueue(&input_queue_);
 
   std::vector<Event> events_postponed;
-
   std::vector<Event>::iterator input_iter(input_queue_.begin()),
     input_end(input_queue_.end());
   for (; input_iter != input_end; ++input_iter) {
@@ -247,9 +246,8 @@ void LogicalProcess::Rollback(Time time,
   std::cout << name() << " rolled to " << LogicalTime() << std::endl;
 }
 
-Time LogicalProcess::MinVirtualTime() const {
-  Time min_time = LogicalTime();
-
+Time LogicalProcess::LocalVirtualTime() const {
+  Time min_time= MAX_TIME;
   std::vector<Event>::const_iterator input_iter(input_queue_.begin()),
       input_end(input_queue_.end());
   for (; input_iter != input_end; ++input_iter) {

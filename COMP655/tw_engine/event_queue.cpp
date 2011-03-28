@@ -8,11 +8,6 @@
 #include <iostream>
 
 void EventQueue::RegisterEvent(Event const & event) {
-#if 0
-  if (heap_.size() > 100) {
-    std::cout << "QueueSize: " << heap_.size() << std::endl;
-  }
-#endif
   heap_.insert(event);
 }
 
@@ -28,5 +23,13 @@ void EventQueue::NextEvents(std::vector<Event>* events) {
   while (!heap_.empty() &&
          heap_.top().receive_time_stamp() == top.receive_time_stamp()) {
     events->push_back(heap_.RemoveTop());
+  }
+}
+
+Time EventQueue::TimeOfNextEvent() const {
+  if (heap_.empty()) {
+    return MAX_TIME; // TODO:  Is this correct?
+  } else {
+    return heap_.top().receive_time_stamp();
   }
 }

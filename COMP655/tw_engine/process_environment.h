@@ -20,7 +20,7 @@ class ProcessEnvironment {
   void RegisterLogicalProcess(LogicalProcess* process);
   LogicalProcess* process(int id);
 
-  bool Idle() const { return event_queue().empty(); }
+  bool IsIdle() const { return event_queue().empty(); }
   void Send(Event const& event);
 
   Time VirtualTime() const;

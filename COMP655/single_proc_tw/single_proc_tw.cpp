@@ -23,6 +23,27 @@ int _tmain(int argc, _TCHAR* argv[]) {
   engines[0].Init(&builder1);
   engines[1].Init(&builder2);
 
+  int iter_count = 0;
+  while (!(engines[0].IsIdle() && engines[1].IsIdle())) {
+
+    if (!(iter_count % 400)) {
+      Time engine1 = engines[0].LocalVirtualTime();
+      Time engine2 = engines[1].LocalVirtualTime();
+      Time gvt = engine1 < engine2 ? engine1 : engine2;
+      engines[0].ReceiveGlobalVirtualTime(gvt);
+      engines[1].ReceiveGlobalVirtualTime(gvt);
+    }
+    engines[0].TimeStep();
+    engines[0].TimeStep();
+    engines[0].TimeStep();
+    engines[1].TimeStep();
+    std::cout << "Engine 1@: " << engines[0].LocalVirtualTime() <<
+        ", Engine 2@: " << engines[1].LocalVirtualTime() << std::endl;
+    ++iter_count;
+  }
+
+
+#if 0
   while (!(engines[0].IsIdle() && engines[1].IsIdle())) {
     engines[0].TimeStep();
     engines[1].TimeStep();
@@ -45,6 +66,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
     std::cout << "Engine 1@: " << engines[0].LocalVirtualTime() <<
         ", Engine 2@: " << engines[1].LocalVirtualTime() << std::endl;
   }
+#endif
 
 #if 0
   int step_count = 0;

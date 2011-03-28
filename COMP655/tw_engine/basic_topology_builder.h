@@ -32,7 +32,6 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
   }
 
   virtual void PrimeSimulation(ProcessEnvironment* env) {
-    //assert(engine == &(*engines_)[id_]);
     switch (id_) {
       case 0:
         PrimeInputPartition(env);
@@ -65,10 +64,10 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
     post_master_->RegisterRemoteLP(middle_pipe_->id(), engine);
 
     input_1_->set_target(middle_pipe_->id());
-    input_1_->set_count(3000);
+    input_1_->set_count(20000);
 
     input_2_->set_target(middle_pipe_->id());
-    input_2_->set_count(3000);
+    input_2_->set_count(20000);
 
     middle_pipe_->set_target(100);
   }

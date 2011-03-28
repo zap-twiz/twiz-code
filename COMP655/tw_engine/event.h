@@ -58,8 +58,10 @@ inline bool operator==(Event const &e1, Event const & e2) {
       e1.send_time_stamp() == e2.send_time_stamp() &&
       e1.receive_time_stamp() == e2.receive_time_stamp() &&
       e1.sending_process_id() == e2.sending_process_id() &&
-      e1.target_process_id() == e2.target_process_id() &&
-      e1.find_mode() == e2.find_mode();
+      e1.target_process_id() == e2.target_process_id();
+
+      // Disregard the find mode setting of this event
+      //e1.find_mode() == e2.find_mode();
 }
 
 #endif  // INCLUDED_EVENT_H__
