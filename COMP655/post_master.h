@@ -8,13 +8,13 @@ class PostMaster {
   virtual ~PostMaster() {}
   virtual void SendMessage(Event const & event) = 0;
 
-  virtual bool IsLPLocal(int lp_id) const = 0;
+  //virtual bool IsLPLocal(int lp_id) const = 0;
 };
 
 class LocalPostMaster : public PostMaster {
  public:
   virtual void SendMessage(Event const & event) {}
-  bool IsLPLocal(int) const { return true; }
+  //bool IsLPLocal(int) const { return true; }
 };
 
 #include <map>
