@@ -24,9 +24,6 @@ class PostMaster {
 };
 
 #include <map>
-
-//#include "simulation_engine.h"
-
 #include "process_environment.h"
 
 class SimulationEngine;
