@@ -1,9 +1,25 @@
 // mpi_tutorial.cpp : Defines the entry point for the console application.
 //
 
+#include "mpi_post_master.h"
+#include "mpi_topology_builder.h"
+
 #include <iostream>
 #include "mpi.h"
 
+int main(int argc, char** argv) {
+  MPI_Init(&argc, &argv);
+
+  int rank, size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  MPIPostMaster post_master;
+
+  MPI_Finalize();
+  return 0;
+}
+#if 0
 #define WORK_TAG      1
 #define WORK_CONFIRM  2
 #define WORK_RESULT   3
@@ -101,3 +117,4 @@ int main(int argc, char** argv) {
   return 0;
 } 
 
+#endif 
