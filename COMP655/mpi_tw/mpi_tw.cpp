@@ -4,7 +4,6 @@
 #include "stdafx.h"
 
 #include <iostream>
-
 #include "mpi.h"
 
 #define WORK_TAG      1

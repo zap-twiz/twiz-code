@@ -13,12 +13,8 @@
 #include "post_master.h"
 
 int _tmain(int argc, _TCHAR* argv[]) {
-
-  //SimulationEngine engines[2];
   std::vector<SimulationEngine> engines;
   engines.resize(2);
-
-  BasicTopologyBuilder simple_builder;
 
   PartitionedPostMaster post_master;
   PartitionedTopologyBuilder builder1(0, &engines, &post_master),
