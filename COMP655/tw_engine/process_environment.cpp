@@ -42,15 +42,24 @@ void ProcessEnvironment::Send(Event const& event) {
 }
 
 Time ProcessEnvironment::VirtualTime() const {
-  Time local_time = MAX_TIME;
+  Time local_time = message_queue_.TimeOfNextEvent();
 
   ProcessMap::const_iterator iter(processes_.begin()),
     end(processes_.end());
   for (; iter != end; ++iter) {
-    if (iter->second->LogicalTime() < local_time) {
-      local_time = iter->second->MinVirtualTime();
+    Time proc_time = iter->second->LocalVirtualTime();
+    if (proc_time < local_time) {
+      local_time = proc_time;
     }
   }
 
   return local_time;
+}
+
+void ProcessEnvironment::FossilCollect(Time gvt) {
+  ProcessMap::iterator iter(processes_.begin()),
+    end(processes_.end());
+  for (; iter != end; ++iter) {
+    iter->second->FossilCollect(gvt);
+  }
 }

@@ -1,8 +1,6 @@
 // mpi_tutorial.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
-
 #include <iostream>
 #include "mpi.h"
 
@@ -83,8 +81,7 @@ void slave_loop(int rank, int size) {
   }
 }
 
-int _tmain(int argc, char** argv)
-{
+int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
   //std::cout << "hello?" << std::endl;

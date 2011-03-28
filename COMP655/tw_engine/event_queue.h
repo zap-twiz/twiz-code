@@ -14,6 +14,7 @@ class EventQueue {
   void NextEvents(std::vector<Event>* events);
 
   bool empty() const { return heap_.empty(); }
+  Time TimeOfNextEvent() const;
  private:
 
   typedef Heap<Event, std::less<Event> > EventHeap;

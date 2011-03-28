@@ -43,8 +43,10 @@ class LogicalProcess : public NamedEntity {
   void ReceiveEvent(Event const & event);
   void EvaluateInputQueue(ProcessEnvironment* process_environment);
 
+  // The time at which the LP last received an event.
   Time LogicalTime() const { return local_time_; }
-  Time MinVirtualTime() const;
+
+  Time LocalVirtualTime() const;
   void FossilCollect(Time gvt);
 
  protected:
