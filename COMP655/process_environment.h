@@ -24,6 +24,8 @@ class ProcessEnvironment {
   void Send(Event const& event);
 
   Time VirtualTime() const;
+
+  void FossilCollect(Time gvt);
  public:
   EventQueue& event_queue() { return message_queue_; }
   EventQueue const & event_queue() const { return message_queue_; }

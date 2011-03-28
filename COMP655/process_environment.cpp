@@ -48,7 +48,7 @@ Time ProcessEnvironment::VirtualTime() const {
     end(processes_.end());
   for (; iter != end; ++iter) {
     if (iter->second->LogicalTime() < local_time) {
-      local_time = iter->second->LogicalTime();
+      local_time = iter->second->MinVirtualTime();
     }
   }
 

@@ -1,6 +1,7 @@
 #ifndef INCLUDED_SIMULATION_ENGINE_H__
 #define INCLUDED_SIMULATION_ENGINE_H__
 
+#include "event.h"
 #include "process_environment.h"
 #include "post_master.h"
 
@@ -31,6 +32,9 @@ class SimulationEngine {
   bool IsIdle() const {
     return environment()->Idle(); 
   }
+
+  Time LocalVirtualTime() const;
+  void ReceiveGlobalVirtualTime(Time gvt);
 
   ProcessEnvironment* environment() { return &env_; }
   ProcessEnvironment const * environment() const { return &env_; }

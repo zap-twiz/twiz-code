@@ -35,6 +35,9 @@ class Event {
   int target_process_id() const { return target_process_id_; }
   void set_target_process_id(int id) { target_process_id_ = id; }
 
+  bool find_mode() const { return find_mode_; }
+  void set_find_mode(bool mode) { find_mode_ = mode; }
+
  private:
   Time send_time_stamp_;
   Time receive_time_stamp_;
@@ -42,6 +45,7 @@ class Event {
   int type_;
   int sending_process_id_;
   int target_process_id_;
+  bool find_mode_;
 };
 
 inline bool operator<(Event const & e1, Event const & e2) {
@@ -54,7 +58,8 @@ inline bool operator==(Event const &e1, Event const & e2) {
       e1.send_time_stamp() == e2.send_time_stamp() &&
       e1.receive_time_stamp() == e2.receive_time_stamp() &&
       e1.sending_process_id() == e2.sending_process_id() &&
-      e1.target_process_id() == e2.target_process_id();
+      e1.target_process_id() == e2.target_process_id() &&
+      e1.find_mode() == e2.find_mode();
 }
 
 #endif  // INCLUDED_EVENT_H__
