@@ -3,8 +3,6 @@
 
 #include "stdafx.h"
 
-#include "heap.h"
-
 #include <functional>
 #include <iostream>
 
@@ -12,6 +10,7 @@
 
 #include "simulation_engine.h"
 #include "basic_topology_builder.h"
+#include "post_master.h"
 
 int _tmain(int argc, _TCHAR* argv[]) {
 
@@ -22,13 +21,28 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
   BasicTopologyBuilder simple_builder;
 
-  PartitionedTopologyBuilder builder1(1, &engines),
-      builder2(2, &engines);
+  PartitionedPostMaster post_master;
+  PartitionedTopologyBuilder builder1(0, &engines, &post_master),
+      builder2(1, &engines, &post_master);
 
   engines[0].Init(&builder1);
   engines[1].Init(&builder2);
 
-  while (!(engines[0].IsIdle() || engines[1].IsIdle())) {
+  while (!(engines[0].IsIdle() && engines[1].IsIdle())) {
+    engines[0].TimeStep();
+    engines[1].TimeStep();
+  }
+
+  Event bogus_event;
+  bogus_event.set_receive_time_stamp(100);
+  bogus_event.set_send_time_stamp(100);
+  bogus_event.set_sending_process_id(-1);
+  bogus_event.set_payload(-1);
+  bogus_event.set_type(47);
+  bogus_event.set_target_process_id(builder1.generator1()->id());
+  post_master.SendMessage(bogus_event);
+
+  while (!(engines[0].IsIdle() && engines[1].IsIdle())) {
     engines[0].TimeStep();
     engines[1].TimeStep();
   }
