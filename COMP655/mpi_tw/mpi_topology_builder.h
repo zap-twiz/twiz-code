@@ -1,22 +1,16 @@
-#ifndef INCLUDED_BASIC_TOPOLOGY_BUILDER_H_
-#define INCLUDED_BASIC_TOPOLOGY_BUILDER_H_
+#ifndef INCLUDED_MPI_TOPOLOGY_BUILDER_H_
+#define INCLUDED_MPI_TOPOLOGY_BUILDER_H_
 
-#include "basic_processes.h"
 #include "simulation_engine.h"
+#include "basic_topology_builder.h"
 
-#include <assert.h>
-#include <vector>
-
-class PartitionedTopologyBuilder : public SimulationBuilder {
+class MPITopologyBuilder : public SimulationBuilder {
  public:
-  PartitionedTopologyBuilder(int id,
-                             PartitionedPostMaster* post_master)
-      : id_(id), post_master_(post_master) {}
-
-  GeneratorProcess* generator1() { return input_1_; }
+  MPITopologyBuilder(int rank, MPIPostMaster* post_master)
+      : rank_(rank), post_master_(post_master) {};
 
   virtual void BuildSimulation(SimulationEngine* engine) {
-    switch (id_) {
+    switch (rank_) {
       case 0:
         BuildInputPartition(engine);
         break;
@@ -30,7 +24,7 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
   }
 
   virtual void PrimeSimulation(ProcessEnvironment* env) {
-    switch (id_) {
+    switch (rank_) {
       case 0:
         PrimeInputPartition(env);
         break;
@@ -68,7 +62,11 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
     input_2_->set_count(20000);
 
     middle_pipe_->set_target(100);
+
+    // The end cap has id 100, and is in proc with rank 1
+    post_master_->RegisterLPRank(100, 1);
   }
+
   virtual void BuildOutputPartition(SimulationEngine* engine) {
     ProcessEnvironment* env = engine->environment();
     int id = 100;
@@ -103,16 +101,12 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
     // nothing to do!
   }
 
-  int id_;
-  PartitionedPostMaster* post_master_;
+  int rank_;
+  MPIPostMaster* post_master_;
 
   GeneratorProcess *input_1_, *input_2_, *input_3_;
   PipelineProcess *middle_pipe_;
   ConsumerProcess *end_cap_;
-
-  // Disallow copy & assign
-  PartitionedTopologyBuilder() {}
-  PartitionedTopologyBuilder(PartitionedTopologyBuilder const &) {}
 };
 
-#endif  // INCLUDED_BASIC_TOPOLOGY_BUILDER_H_
+#endif  // INCLUDED_MPI_TOPOLOGY_BUILDER_H_

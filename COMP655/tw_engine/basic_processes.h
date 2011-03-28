@@ -6,6 +6,8 @@
 #include "process_environment.h"
 #include "random.h"
 
+#include <iostream>
+
 class PipelineProcess : public LogicalProcess {
  public:
   class PipelineProcessState : public State {

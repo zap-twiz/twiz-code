@@ -17,8 +17,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   engines.resize(2);
 
   PartitionedPostMaster post_master;
-  PartitionedTopologyBuilder builder1(0, &engines, &post_master),
-      builder2(1, &engines, &post_master);
+  PartitionedTopologyBuilder builder1(0, &post_master),
+      builder2(1, &post_master);
 
   engines[0].Init(&builder1);
   engines[1].Init(&builder2);

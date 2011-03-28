@@ -15,7 +15,7 @@ class PostMaster {
     return false;
   }
 
-
+  // TODO:  Remove these!  (OR integrate them better)
   void set_find_mode(bool mode) { find_mode_ = mode; }
   bool find_mode() const { return find_mode_; }
 
@@ -40,6 +40,9 @@ class PartitionedPostMaster : public PostMaster {
   }
 
   virtual void SendMessage(Event const & event);
+
+ protected:
+  SimulationEngine* engine(int lp_id);
  private:
   std::map<int, SimulationEngine*> engine_map_;
 };
