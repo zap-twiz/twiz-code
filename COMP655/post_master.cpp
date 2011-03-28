@@ -9,5 +9,7 @@ void PartitionedPostMaster::SendMessage(Event const & event) {
     assert(engine_map_.find(event.target_process_id()) != engine_map_.end());
     ProcessEnvironment* env =
         engine_map_[event.target_process_id()]->environment();
-    env->event_queue().RegisterEvent(event);
+    Event local_copy = event;
+    local_copy.set_find_mode(find_mode());
+    env->event_queue().RegisterEvent(local_copy);
 }

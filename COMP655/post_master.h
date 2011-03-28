@@ -1,25 +1,32 @@
 #ifndef INCLUDED_POST_MASTER_H_
 #define INCLUDED_POST_MASTER_H_
 
-class Event;
+#include "event.h"
+
 
 class PostMaster {
  public:
   virtual ~PostMaster() {}
   virtual void SendMessage(Event const & event) = 0;
 
-  //virtual bool IsLPLocal(int lp_id) const = 0;
-};
+  bool LocalVirtualTimeContribution(Time* time) const {
+    // The default behaviour is that the post-master has no
+    // contribution to the GVT computations
+    return false;
+  }
 
-class LocalPostMaster : public PostMaster {
- public:
-  virtual void SendMessage(Event const & event) {}
-  //bool IsLPLocal(int) const { return true; }
+
+  void set_find_mode(bool mode) { find_mode_ = mode; }
+  bool find_mode() const { return find_mode_; }
+
+ private:
+  bool find_mode_;
 };
 
 #include <map>
 
 //#include "simulation_engine.h"
+
 #include "process_environment.h"
 
 class SimulationEngine;
@@ -28,6 +35,11 @@ class PartitionedPostMaster : public PostMaster {
  public:
   void RegisterRemoteLP(int lp_id, SimulationEngine* engine) {
     engine_map_[lp_id] = engine;
+  }
+
+  bool LocalVirtualTimeContribution(Time* time) const {
+    // TODO:  Process messages appropriately!
+    return false;
   }
 
   virtual void SendMessage(Event const & event);

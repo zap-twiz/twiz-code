@@ -44,6 +44,8 @@ class LogicalProcess : public NamedEntity {
   void EvaluateInputQueue(ProcessEnvironment* process_environment);
 
   Time LogicalTime() const { return local_time_; }
+  Time MinVirtualTime() const;
+  void FossilCollect(Time gvt);
 
  protected:
   // Returns true if the event was processed, false if it needs to be deferred

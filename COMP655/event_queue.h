@@ -12,10 +12,6 @@ class EventQueue {
   void RegisterEvent(Event const & event);
 
   void NextEvents(std::vector<Event>* events);
-#if 0
-  void NextEvents(std::vector<Event>* positive_events,
-                  std::vector<Event>* negative_events);
-#endif
 
   bool empty() const { return heap_.empty(); }
  private:

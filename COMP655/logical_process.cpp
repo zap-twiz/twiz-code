@@ -246,3 +246,37 @@ void LogicalProcess::Rollback(Time time,
 
   std::cout << name() << " rolled to " << LogicalTime() << std::endl;
 }
+
+Time LogicalProcess::MinVirtualTime() const {
+  Time min_time = LogicalTime();
+
+  std::vector<Event>::const_iterator input_iter(input_queue_.begin()),
+      input_end(input_queue_.end());
+  for (; input_iter != input_end; ++input_iter) {
+    if (input_iter->receive_time_stamp() < min_time) {
+      min_time = input_iter->receive_time_stamp();
+    }
+  }
+
+  return min_time;
+}
+
+void LogicalProcess::FossilCollect(Time gvt) {
+  assert(states_.size() == processed_events_.size() &&
+         sent_events_.size() == states_.size());
+
+  // Clear all states, processed events, and sent events
+  while (!processed_events_.empty() &&
+         processed_events_.front().receive_time_stamp() < gvt) {
+    processed_events_.erase(processed_events_.begin());
+    sent_events_.erase(sent_events_.begin());
+
+    delete states_.front();
+    states_.erase(states_.begin());
+  }
+
+  // Make sure that the memory was actually reclaimed.
+  processed_events_.shrink_to_fit();
+  sent_events_.shrink_to_fit();
+  states_.shrink_to_fit();
+}

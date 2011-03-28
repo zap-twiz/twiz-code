@@ -31,6 +31,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   while (!(engines[0].IsIdle() && engines[1].IsIdle())) {
     engines[0].TimeStep();
     engines[1].TimeStep();
+    std::cout << "Engine 1@: " << engines[0].LocalVirtualTime() <<
+        ", Engine 2@: " << engines[1].LocalVirtualTime() << std::endl;
   }
 
   Event bogus_event;
@@ -45,6 +47,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
   while (!(engines[0].IsIdle() && engines[1].IsIdle())) {
     engines[0].TimeStep();
     engines[1].TimeStep();
+    std::cout << "Engine 1@: " << engines[0].LocalVirtualTime() <<
+        ", Engine 2@: " << engines[1].LocalVirtualTime() << std::endl;
   }
 
 #if 0
