@@ -12,7 +12,7 @@ void PartitionedPostMaster::SendMessage(Event const & event) {
     ProcessEnvironment* env =
         engine_map_[event.target_process_id()]->environment();
     Event local_copy = event;
-    local_copy.set_find_mode(find_mode());
+    //local_copy.set_find_mode(find_mode());
     env->event_queue().RegisterEvent(local_copy);
 }
 

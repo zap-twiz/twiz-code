@@ -9,8 +9,14 @@
 #include <set>
 
 void SimulationEngine::TimeStep() {
-  if (env_.IsIdle())
+  if (env_.IsIdle()) {
+    // Receive and post an external event
+    Event remote_event;
+    if (post_master_->ReceiveMessage(&remote_event)) {
+      env_.Send(remote_event);
+    }
     return;
+  }
 
   std::vector<Event> next_events;
   env_.event_queue().NextEvents(&next_events);
@@ -42,7 +48,5 @@ Time SimulationEngine::LocalVirtualTime() const {
 
 void SimulationEngine::ReceiveGlobalVirtualTime(Time gvt) {
   assert(gvt <= LocalVirtualTime());
-
-  // Fossil Collect
   env_.FossilCollect(gvt);
 }

@@ -1,24 +1,77 @@
 // mpi_tutorial.cpp : Defines the entry point for the console application.
 //
 
+#include "mpi_event.h"
 #include "mpi_post_master.h"
 #include "mpi_topology_builder.h"
 
 #include <iostream>
+
 #include "mpi.h"
 
 int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
+  //while(true) {}
+
   int rank, size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  MPIPostMaster post_master;
+  {
+    SimulationEngine engine;
+    MPIPostMaster post_master;
+    MPITopologyBuilder mpi_builder(rank, &post_master);
+    engine.Init(&mpi_builder);
 
+    if (0 == rank) {
+      for (int x = 0; x < 100; ++x) {
+        engine.TimeStep();
+        std::cout << "Master Engine @ " << engine.LocalVirtualTime() <<
+            std::endl;
+      }
+    } else if (1 == rank) {
+      for (int x = 0; x < 400; ++x) {
+        engine.TimeStep();
+        std::cout << "Slave Engine @ " << engine.LocalVirtualTime() <<
+            std::endl;
+      }
+    }
+  }  // block scope
+  /* do nothing */
   MPI_Finalize();
   return 0;
 }
+
+#if 0
+  if (0 == rank) {
+    std::cout << "Master Reporting" << std::endl;
+    MPIPostMaster post_master;
+    MPIEventRouter  event_router;
+
+    Event test_event;
+    test_event.set_receive_time_stamp(0xA);
+    test_event.set_send_time_stamp(0xB);
+    test_event.set_sending_process_id(0xC);
+    test_event.set_payload(0xD);
+    test_event.set_type(0xE);
+    test_event.set_target_process_id(0xF);
+    event_router.MPISendEvent(1, test_event);
+  } else if (1 == rank) {
+    std::cout << "Slave Reporting" << std::endl;
+
+    Event receive_event;
+    MPIEventRouter event_router;
+    event_router.MPIReceiveEvent(&receive_event);
+
+    std::cout << "Slave Received: " <<
+      "Recv@ " << receive_event.receive_time_stamp() << ", " <<
+      "Send@ " << receive_event.send_time_stamp() << ", " <<
+      "Pay@ " << receive_event.payload() << ", " <<
+      "Type@ " << receive_event.type() << std::endl;
+  }
+#endif
+
 #if 0
 #define WORK_TAG      1
 #define WORK_CONFIRM  2
