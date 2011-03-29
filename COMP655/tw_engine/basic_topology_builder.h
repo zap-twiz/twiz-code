@@ -103,6 +103,8 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
     // nothing to do!
   }
 
+  int rank() { return id_; }
+
   int id_;
   PartitionedPostMaster* post_master_;
 

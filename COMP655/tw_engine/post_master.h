@@ -8,6 +8,7 @@ class PostMaster {
  public:
   virtual ~PostMaster() {}
   virtual void SendMessage(Event const & event) = 0;
+  virtual bool ReceiveMessage(Event* event) = 0;
 
   bool LocalVirtualTimeContribution(Time* time) const {
     // The default behaviour is that the post-master has no
@@ -40,6 +41,9 @@ class PartitionedPostMaster : public PostMaster {
   }
 
   virtual void SendMessage(Event const & event);
+  virtual bool ReceiveMessage(Event* event) {
+    return false;
+  }
 
  protected:
   SimulationEngine* engine(int lp_id);

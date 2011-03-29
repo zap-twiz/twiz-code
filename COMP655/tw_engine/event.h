@@ -2,13 +2,9 @@
 #define INCLUDED_EVENT_H__
 
 #include <limits.h>
-#define MAX_TIME  LLONG_MAX
+#define MAX_TIME  ULONG_MAX
 
-typedef unsigned long long Time;
-
-#define EVENT_CUSTOM_TYPE         0x1000
-#define EVENT_GVT_REQUEST_TYPE    (EVENT_CUSTOM_TYPE)
-#define EVENT_REMOTE_MESSAGE_ACK  (EVENT_GVT_REQUEST_TYPE + 1)
+typedef unsigned long Time;
 
 class Event {
  public:
@@ -35,8 +31,10 @@ class Event {
   int target_process_id() const { return target_process_id_; }
   void set_target_process_id(int id) { target_process_id_ = id; }
 
+#if 0
   bool find_mode() const { return find_mode_; }
   void set_find_mode(bool mode) { find_mode_ = mode; }
+#endif
 
  private:
   Time send_time_stamp_;
@@ -45,7 +43,7 @@ class Event {
   int type_;
   int sending_process_id_;
   int target_process_id_;
-  bool find_mode_;
+  //bool find_mode_;
 };
 
 inline bool operator<(Event const & e1, Event const & e2) {

@@ -4,56 +4,31 @@
 #include "simulation_engine.h"
 #include "basic_topology_builder.h"
 
-class MPITopologyBuilder : public SimulationBuilder {
+class MPITopologyBuilder : public PartitionedTopologyBuilder {
  public:
   MPITopologyBuilder(int rank, MPIPostMaster* post_master)
-      : rank_(rank), post_master_(post_master) {};
+      : PartitionedTopologyBuilder(rank, post_master) {};
 
-  virtual void BuildSimulation(SimulationEngine* engine) {
-    switch (rank_) {
-      case 0:
-        BuildInputPartition(engine);
-        break;
-      case 1:
-        BuildOutputPartition(engine);
-        break;
-      default:
-        assert(false);
-    }
-    engine->set_postmaster(post_master_);
-  }
-
-  virtual void PrimeSimulation(ProcessEnvironment* env) {
-    switch (rank_) {
-      case 0:
-        PrimeInputPartition(env);
-        break;
-      case 1:
-        PrimeOutputPartition(env);
-        break;
-      default:
-        assert(false);
-    }
-  }
  protected:
   virtual void BuildInputPartition(SimulationEngine* engine) {
     ProcessEnvironment* env = engine->environment();
+    MPIPostMaster* post_master = static_cast<MPIPostMaster*>(post_master_);
 
     int id = 0;
     RandomConstant<1> random;
     input_1_ = new GeneratorProcess(++id, &random);
     input_1_->set_name("Input 1");
     env->RegisterLogicalProcess(input_1_);
-    post_master_->RegisterRemoteLP(input_1_->id(), engine);
+    post_master->RegisterRemoteLP(input_1_->id(), engine);
     input_2_ = new GeneratorProcess(++id, &random);
     input_2_->set_name("Input 2");
     env->RegisterLogicalProcess(input_2_);
-    post_master_->RegisterRemoteLP(input_2_->id(), engine);
+    post_master->RegisterRemoteLP(input_2_->id(), engine);
 
     middle_pipe_ = new PipelineProcess(++id, &random);
     middle_pipe_->set_name("Middle Pipe");
     env->RegisterLogicalProcess(middle_pipe_);
-    post_master_->RegisterRemoteLP(middle_pipe_->id(), engine);
+    post_master->RegisterRemoteLP(middle_pipe_->id(), engine);
 
     input_1_->set_target(middle_pipe_->id());
     input_1_->set_count(20000);
@@ -64,11 +39,13 @@ class MPITopologyBuilder : public SimulationBuilder {
     middle_pipe_->set_target(100);
 
     // The end cap has id 100, and is in proc with rank 1
-    post_master_->RegisterLPRank(100, 1);
+    post_master->RegisterLPRank(100, 1);
   }
 
   virtual void BuildOutputPartition(SimulationEngine* engine) {
     ProcessEnvironment* env = engine->environment();
+    MPIPostMaster* post_master = static_cast<MPIPostMaster*>(post_master_);
+
     int id = 100;
     end_cap_ = new ConsumerProcess(id);
     end_cap_->set_name("End Cap");
@@ -100,13 +77,6 @@ class MPITopologyBuilder : public SimulationBuilder {
   virtual void PrimeOutputPartition(ProcessEnvironment* env) {
     // nothing to do!
   }
-
-  int rank_;
-  MPIPostMaster* post_master_;
-
-  GeneratorProcess *input_1_, *input_2_, *input_3_;
-  PipelineProcess *middle_pipe_;
-  ConsumerProcess *end_cap_;
 };
 
 #endif  // INCLUDED_MPI_TOPOLOGY_BUILDER_H_
