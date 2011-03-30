@@ -18,10 +18,12 @@ template <class T, class K, class A >
 typename Heap<T, K, A>::Type Heap<T, K, A>::RemoveTop() {
   Type top_element = top();
 
+  // Replace the top of the heap with the rightmost element at the bottom
+  // level of the heap.
   std::swap(buffer_.back(), buffer_.front());
   buffer_.pop_back();
 
-  // Trickle down
+  // Trickle down until the heap property is restored.
   int index = 1;
   int const last_index = buffer_.size() + 1;
   for (;;) {

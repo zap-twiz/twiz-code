@@ -2,6 +2,7 @@
 #define INCLUDED_SIMULATION_ENGINE_H__
 
 #include "event.h"
+#include "named_entity.h"
 #include "process_environment.h"
 #include "post_master.h"
 
@@ -13,7 +14,7 @@ class SimulationBuilder {
   virtual void PrimeSimulation(ProcessEnvironment* env) = 0;
 };
 
-class SimulationEngine {
+class SimulationEngine : public NamedEntity{
  public:
   SimulationEngine() : post_master_(NULL) {}
 

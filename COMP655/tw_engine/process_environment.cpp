@@ -6,18 +6,19 @@
 #include <assert.h>
 
 ProcessEnvironment::~ProcessEnvironment() {
-  ProcessMap::iterator iter(processes_.begin()),
-      end(processes_.end());
+  // The process environment manages the lifetime of all owned processes.
+  ProcessMap::iterator iter(processes_.begin()), end(processes_.end());
   for (; iter != end; ++iter)
     delete iter->second;
 }
 
 LogicalProcess* ProcessEnvironment::process(int id) {
   ProcessMap::iterator proc = processes_.find(id);
-  if (proc == processes_.end())
+  if (proc == processes_.end()) {
     return NULL;
-  else 
+  } else {
     return proc->second;
+  }
 }
 
 void ProcessEnvironment::RegisterLogicalProcess(LogicalProcess* proc) {
@@ -26,26 +27,18 @@ void ProcessEnvironment::RegisterLogicalProcess(LogicalProcess* proc) {
 }
 
 void ProcessEnvironment::Send(Event const& event) {
+  // If no PostMaster is installed, then assume that the event is going
+  // to the same process environment.
   if (post_master_) {
     post_master_->SendMessage(event);
   } else {
     event_queue().RegisterEvent(event);
   }
-#if 0
-  if (!post_master_ ||
-      post_master_->IsLPLocal(event.target_process_id())) {
-    event_queue().RegisterEvent(event);
-  } else {
-    post_master_->SendMessage(/* arguments */);
-  }
-#endif
 }
 
 Time ProcessEnvironment::VirtualTime() const {
   Time local_time = message_queue_.TimeOfNextEvent();
-
-  ProcessMap::const_iterator iter(processes_.begin()),
-    end(processes_.end());
+  ProcessMap::const_iterator iter(processes_.begin()), end(processes_.end());
   for (; iter != end; ++iter) {
     Time proc_time = iter->second->LocalVirtualTime();
     if (proc_time < local_time) {
@@ -57,8 +50,7 @@ Time ProcessEnvironment::VirtualTime() const {
 }
 
 void ProcessEnvironment::FossilCollect(Time gvt) {
-  ProcessMap::iterator iter(processes_.begin()),
-    end(processes_.end());
+  ProcessMap::iterator iter(processes_.begin()), end(processes_.end());
   for (; iter != end; ++iter) {
     iter->second->FossilCollect(gvt);
   }

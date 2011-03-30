@@ -2,24 +2,10 @@
 #define INCLUDED_LOGICAL_PROCESS_H__
 
 #include "event.h"
+#include "logging.h"
+#include "named_entity.h"
 
-#include <string>
 #include <vector>
-
-class NamedEntity {
- public:
-  explicit NamedEntity(int id) : id_(id) {}
-  virtual ~NamedEntity() {}
-  int id() const { return id_; }
-  std::string const & name() const { return name_; }
-
-  void set_name(std::string const & name) {
-    name_ = name;
-  }
- private:
-  std::string name_;
-  int id_;
-};
 
 class ProcessEnvironment;
 class State {
@@ -37,8 +23,11 @@ class State {
 
 class LogicalProcess : public NamedEntity {
  public:
-  LogicalProcess(int id) : NamedEntity(id), local_time_(0) {}
+  LogicalProcess(int id) : NamedEntity(id), local_time_(0), logger_(NULL) {}
   virtual ~LogicalProcess();
+
+  void set_logger(Logger* logger) { logger_ = logger; }
+  std::ostream& log() const;
 
   void ReceiveEvent(Event const & event);
   void EvaluateInputQueue(ProcessEnvironment* process_environment);
@@ -90,6 +79,8 @@ class LogicalProcess : public NamedEntity {
   std::vector< std::vector<Event> > sent_events_;
 
   Time local_time_;
+
+  Logger* logger_;
 };
 
 #endif  // INCLUDED_LOGICAL_PROCESS_H__
