@@ -1,8 +1,6 @@
-
 #include "stdafx.h"
 
 #include "logical_process.h"
-
 #include "process_environment.h"
 
 #include <algorithm>
@@ -51,30 +49,6 @@ void DoAnnihilation(std::vector<Event> const & intersection,
   }
 }
 
-void ResolveInputQueue(std::vector<Event>* input_queue) {
-  // First pull apart the postive and negative events.
-  std::vector<Event> positive_events, negative_events;
-  std::vector<Event>::iterator input_iter(input_queue->begin()),
-      input_end(input_queue->end());
-  for (; input_iter != input_end; ++input_iter) {
-    if (input_iter->is_positive()) {
-      positive_events.push_back(*input_iter);
-    } else {
-      negative_events.push_back(*input_iter);
-    }
-  }
-
-  // Compute the set of matching positive/negative event
-  // pairs.
-  std::vector<Event>  intersection;
-  PositiveNegativeIntersect(positive_events, negative_events,
-                            &intersection);
-
-  // Remove all events corresponding to matching positive
-  // negative pairs.
-  DoAnnihilation(intersection, input_queue);
-}
-
 }  // namespace
 
 
@@ -87,9 +61,42 @@ LogicalProcess::~LogicalProcess() {
   states_.clear();
 }
 
+std::ostream& LogicalProcess::log() const {
+  return logger_->log() << name() << ": ";
+}
+
 void LogicalProcess::ReceiveEvent(Event const & event) {
-  //assert(event.receive_time_stamp() == input_queue_.back().receive_time_stamp);
   input_queue_.push_back(event);
+}
+
+void LogicalProcess::ResolveInputQueue(std::vector<Event>* input_queue) {
+  // First pull apart the postive and negative events.
+  std::vector<Event> positive_events, negative_events;
+  std::vector<Event>::iterator input_iter(input_queue->begin()),
+      input_end(input_queue->end());
+  for (; input_iter != input_end; ++input_iter) {
+    if (input_iter->is_positive()) {
+      positive_events.push_back(*input_iter);
+    } else {
+      negative_events.push_back(*input_iter);
+    }
+  }
+
+  // Compute the set of matching positive/negative event pairs.
+  std::vector<Event>  intersection;
+  PositiveNegativeIntersect(positive_events, negative_events,
+                            &intersection);
+
+  std::vector<Event>::iterator annihil_iter(intersection.begin()),
+    annihil_end(intersection.end());
+  for (; annihil_iter != annihil_end; ++annihil_iter) {
+    log() << "Annihilating Event: " << event.receive_time_stamp() <<
+        " to: " << event.target_process_id() << 
+        " data: " << event.payload() << " type: " << event.type();
+  }
+
+  // Remove all events corresponding to matching positive /negative pairs.
+  DoAnnihilation(intersection, input_queue);
 }
 
 void LogicalProcess::EvaluateInputQueue(
@@ -98,7 +105,7 @@ void LogicalProcess::EvaluateInputQueue(
 
   std::vector<Event> events_postponed;
   std::vector<Event>::iterator input_iter(input_queue_.begin()),
-    input_end(input_queue_.end());
+      input_end(input_queue_.end());
   for (; input_iter != input_end; ++input_iter) {
     if (!ProcessEvent(*input_iter, process_environment)) {
       events_postponed.push_back(*input_iter);
@@ -112,6 +119,10 @@ bool LogicalProcess::ProcessEvent(
     Event const & event,
     ProcessEnvironment* process_environment) {
   bool event_consumed = false;
+
+  log() << "Processing event: " << event.receive_time_stamp() <<
+        " to: " << event.target_process_id() << 
+        " data: " << event.payload() << " type: " << event.type();
   // This is a future event - assume arbitrary/safe processing of
   // same-timestamp events
   if (event.receive_time_stamp() >= LogicalTime()) {
@@ -146,7 +157,8 @@ bool LogicalProcess::ProcessHistoricalEvent(
     Event const & event,
     ProcessEnvironment* process_environment) {
   // If the message is an anti-event, for which no corresponding event
-  // has been processed, then we have a late/straggler message
+  // has been processed, then we have a late/straggler message - leave
+  // it in the queue.
   if (event.is_negative()) {
     Event positive_version = event;
     positive_version.negate();
@@ -160,7 +172,7 @@ bool LogicalProcess::ProcessHistoricalEvent(
 
   std::vector<Event> coast_forward_events;
   Rollback(event.receive_time_stamp(), &coast_forward_events,
-            process_environment);
+           process_environment);
 
   if (event.is_positive()) {
     // Process a straggler event.
@@ -200,6 +212,9 @@ void LogicalProcess::SendEvent(Event const& event,
   locally_sent_events_.push_back(event);
   locally_sent_events_.back().negate();
 
+  log() << "Sending Event: " << event.receive_time_stamp() <<
+        " to: " << event.target_process_id() << 
+        " data: " << event.payload() << " type: " << event.type();
 #if 0
   if (name() == "Input 1" ) {
   //if (event.target_process_id() != id()) {
@@ -218,20 +233,26 @@ void LogicalProcess::Rollback(Time time,
   assert(states_.size() == processed_events_.size() &&
          sent_events_.size() == states_.size());
 
-  State* target_state = NULL;
+  log() << "Rolling back to time: " << time;
+
+  State* previous_state = NULL;
   while (!processed_events_.empty()) {
     Event& most_recent = processed_events_.back();
     if (most_recent.receive_time_stamp() > time) {
-      // This state wasn't necessary, and will be re-computed
-      ResurrectMemento(states_.back());
-      delete states_.back();
+      //ResurrectMemento(states_.back());
+      delete previous_state;
+      previous_state = states_.back();
       states_.pop_back();
 
-      // send all of the anti-messages here!
       std::vector<Event>::iterator
           anti_message_iter(sent_events_.back().begin()),
           anti_message_end(sent_events_.back().end());
       for (; anti_message_iter != anti_message_end; ++anti_message_iter) {
+        log() << "Sending Anti-Event: " << 
+            anti_message_iter->receive_time_stamp() <<
+            " to: " << anti_message_iter->target_process_id() << 
+            " data: " << anti_message_iter->payload() << 
+            " type: " << anti_message_iter->type();
         process_environment->Send(*anti_message_iter);
       }
       sent_events_.pop_back();
@@ -243,11 +264,21 @@ void LogicalProcess::Rollback(Time time,
     }
   }
 
-  std::cout << name() << " rolled to " << LogicalTime() << std::endl;
+  // Restore the state of the LP appropriately.
+  if (previous_state) {
+    ResurrectMemento(previous_state);
+    delete previous_state;
+  }
+
+  log() << "Rolled to " << LogicalTime();
 }
 
 Time LogicalProcess::LocalVirtualTime() const {
   Time min_time= MAX_TIME;
+  // Return the minimum value of all events presently stored in the
+  // input queue.
+  // Note:  Under normal operation the input queue will be empty.  Input queue
+  // resolution will only leave unmatched stragglers in the input-queue.
   std::vector<Event>::const_iterator input_iter(input_queue_.begin()),
       input_end(input_queue_.end());
   for (; input_iter != input_end; ++input_iter) {
@@ -263,15 +294,21 @@ void LogicalProcess::FossilCollect(Time gvt) {
   assert(states_.size() == processed_events_.size() &&
          sent_events_.size() == states_.size());
 
-  // Clear all states, processed events, and sent events
-  while (!processed_events_.empty() &&
-         processed_events_.front().receive_time_stamp() < gvt) {
-    processed_events_.erase(processed_events_.begin());
-    sent_events_.erase(sent_events_.begin());
+  log() << "GVT Received: " << gvt;
 
-    delete states_.front();
-    states_.erase(states_.begin());
+  // Clear all states, processed events, and sent events
+  size_t offset = 0;
+  while (offset < processed_events_.size() &&
+         processed_events_[offset].receive_time_stamp() < gvt) {
+    delete states_[offset];
+    ++offset;
   }
+
+  processed_events_.erase(processed_events_.begin(),
+                          processed_events_.begin() + offset);
+  sent_events_.erase(sent_events_.begin(),
+                     sent_events_.begin() + offset);
+  states_.erase(states_.begin(), states_.begin() + offset);
 
   // Make sure that the memory was actually reclaimed.
   processed_events_.shrink_to_fit();

@@ -7,6 +7,22 @@
 #include <assert.h>
 #include <vector>
 
+class LogManager {
+ public:
+  ~LogManager() {
+    std::vector<Logger*>::iterator iter(loggers_.begin()),
+      end(loggers_.end());
+    for (; iter != end; ++iter) {
+      delete (*iter)->log_ptr();
+      delete *iter;
+    }
+  }
+
+  void RegisterLogger(Logger* logger) { loggers_.push_back(logger); }
+ private:
+  std::vector<Logger*> loggers_;
+};
+
 class PartitionedTopologyBuilder : public SimulationBuilder {
  public:
   PartitionedTopologyBuilder(int id,
@@ -51,15 +67,28 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
     input_1_->set_name("Input 1");
     env->RegisterLogicalProcess(input_1_);
     post_master_->RegisterRemoteLP(input_1_->id(), engine);
+    Logger* logger_1 = new Logger(InitOutputStream(input_1_->name().c_str()));
+    input_1_->set_logger(logger_1);
+    log_manager_.RegisterLogger(logger_1);
+
+
     input_2_ = new GeneratorProcess(++id, &random);
     input_2_->set_name("Input 2");
     env->RegisterLogicalProcess(input_2_);
     post_master_->RegisterRemoteLP(input_2_->id(), engine);
+    Logger* logger_2 = new Logger(InitOutputStream(input_2_->name().c_str()));
+    input_2_->set_logger(logger_2);
+    log_manager_.RegisterLogger(logger_2);
 
     middle_pipe_ = new PipelineProcess(++id, &random);
     middle_pipe_->set_name("Middle Pipe");
     env->RegisterLogicalProcess(middle_pipe_);
     post_master_->RegisterRemoteLP(middle_pipe_->id(), engine);
+    Logger* logger_m =
+        new Logger(InitOutputStream(middle_pipe_->name().c_str()));
+    middle_pipe_->set_logger(logger_m);
+    log_manager_.RegisterLogger(logger_m);
+
 
     input_1_->set_target(middle_pipe_->id());
     input_1_->set_count(20000);
@@ -72,10 +101,15 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
   virtual void BuildOutputPartition(SimulationEngine* engine) {
     ProcessEnvironment* env = engine->environment();
     int id = 100;
+
     end_cap_ = new ConsumerProcess(id);
     end_cap_->set_name("End Cap");
     env->RegisterLogicalProcess(end_cap_);
     post_master_->RegisterRemoteLP(end_cap_->id(), engine);
+    Logger* logger_end =
+        new Logger(InitOutputStream(end_cap_->name().c_str()));
+    end_cap_->set_logger(logger_end);
+    log_manager_.RegisterLogger(logger_end);
   }
 
   virtual void PrimeInputPartition(ProcessEnvironment* env) {
@@ -111,6 +145,8 @@ class PartitionedTopologyBuilder : public SimulationBuilder {
   GeneratorProcess *input_1_, *input_2_, *input_3_;
   PipelineProcess *middle_pipe_;
   ConsumerProcess *end_cap_;
+
+  LogManager log_manager_;
 
   // Disallow copy & assign
   PartitionedTopologyBuilder() {}
