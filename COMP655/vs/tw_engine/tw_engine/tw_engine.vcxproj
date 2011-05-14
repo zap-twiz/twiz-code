@@ -78,12 +78,15 @@
     <ClInclude Include="..\..\..\tw_engine\heap_inl.h" />
     <ClInclude Include="..\..\..\tw_engine\logging.h" />
     <ClInclude Include="..\..\..\tw_engine\logical_process.h" />
+    <ClInclude Include="..\..\..\tw_engine\log_manager.h" />
     <ClInclude Include="..\..\..\tw_engine\named_entity.h" />
+    <ClInclude Include="..\..\..\tw_engine\partitioned_builder.h" />
     <ClInclude Include="..\..\..\tw_engine\post_master.h" />
     <ClInclude Include="..\..\..\tw_engine\process_environment.h" />
     <ClInclude Include="..\..\..\tw_engine\random.h" />
     <ClInclude Include="..\..\..\tw_engine\random_utils.h" />
     <ClInclude Include="..\..\..\tw_engine\simulation_engine.h" />
+    <ClInclude Include="..\..\..\tw_engine\state.h" />
     <ClInclude Include="..\..\..\tw_engine\stdafx.h" />
     <ClInclude Include="..\..\..\tw_engine\targetver.h" />
   </ItemGroup>
@@ -91,6 +94,7 @@
     <ClCompile Include="..\..\..\tw_engine\event_queue.cpp" />
     <ClCompile Include="..\..\..\tw_engine\logging.cpp" />
     <ClCompile Include="..\..\..\tw_engine\logical_process.cpp" />
+    <ClCompile Include="..\..\..\tw_engine\partitioned_ builder.cpp" />
     <ClCompile Include="..\..\..\tw_engine\post_master.cpp" />
     <ClCompile Include="..\..\..\tw_engine\process_environment.cpp" />
     <ClCompile Include="..\..\..\tw_engine\simulation_engine.cpp" />

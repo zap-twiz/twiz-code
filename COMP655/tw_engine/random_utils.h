@@ -1,8 +1,8 @@
-
 #ifndef INCLUDED_RANDOM_UTILS_H__
 #define INCLUDED_RANDOM_UTILS_H__
 
-int LCGRandom(int a, int x, int c) {
+inline int LCGRandom(int a, int x, int c) {
+  // TODO:  Implement LCG random function
   return a * x + c;
 }
 

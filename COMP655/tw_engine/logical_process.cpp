@@ -90,9 +90,9 @@ void LogicalProcess::ResolveInputQueue(std::vector<Event>* input_queue) {
   std::vector<Event>::iterator annihil_iter(intersection.begin()),
     annihil_end(intersection.end());
   for (; annihil_iter != annihil_end; ++annihil_iter) {
-    log() << "Annihilating Event: " << event.receive_time_stamp() <<
-        " to: " << event.target_process_id() << 
-        " data: " << event.payload() << " type: " << event.type();
+    log() << "Annihilating Event: " << annihil_iter->receive_time_stamp() <<
+        " to: " << annihil_iter->target_process_id() << 
+        " data: " << annihil_iter->payload() << " type: " << annihil_iter->type();
   }
 
   // Remove all events corresponding to matching positive /negative pairs.

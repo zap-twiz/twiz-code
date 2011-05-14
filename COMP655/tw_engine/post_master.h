@@ -3,7 +3,6 @@
 
 #include "event.h"
 
-
 class PostMaster {
  public:
   virtual ~PostMaster() {}

@@ -14,14 +14,16 @@ class SimulationBuilder {
   virtual void PrimeSimulation(ProcessEnvironment* env) = 0;
 };
 
-class SimulationEngine : public NamedEntity{
+class SimulationEngine : public NamedEntity {
  public:
   SimulationEngine() : post_master_(NULL) {}
 
+  // Non-owned
   void set_postmaster(PostMaster* post_master) {
     post_master_ = post_master;
     env_.set_postmaster(post_master);
   }
+  PostMaster* get_postmaster() const { return post_master_; }
 
   void Init(SimulationBuilder* builder) {
     builder->BuildSimulation(this);

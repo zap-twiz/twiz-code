@@ -9,7 +9,7 @@
 //using namespace std;
 
 #include "simulation_engine.h"
-#include "basic_topology_builder.h"
+#include "partitioned_builder.h"
 #include "post_master.h"
 
 int _tmain(int argc, _TCHAR* argv[]) {
