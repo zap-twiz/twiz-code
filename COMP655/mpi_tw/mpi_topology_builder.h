@@ -2,7 +2,7 @@
 #define INCLUDED_MPI_TOPOLOGY_BUILDER_H_
 
 #include "simulation_engine.h"
-#include "basic_topology_builder.h"
+#include "partitioned_builder.h"
 
 class MPITopologyBuilder : public PartitionedTopologyBuilder {
  public:

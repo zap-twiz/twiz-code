@@ -42,4 +42,12 @@ class RandomLinear : public Random {
   int a_, x_, c_;
 };
 
+class RandomExponential : public Random {
+ public:
+  virtual unsigned int Generate() { return 42; }
+  virtual void Restore(int memento) {};
+
+  virtual Random* clone() const { return new RandomExponential; }
+}; 
+
 #endif  // INCLUDED_RANDOM_H_

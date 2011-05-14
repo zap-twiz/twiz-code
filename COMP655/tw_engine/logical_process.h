@@ -4,22 +4,11 @@
 #include "event.h"
 #include "logging.h"
 #include "named_entity.h"
+#include "state.h"
 
 #include <vector>
 
 class ProcessEnvironment;
-class State {
- public:
-  State(Time time) : logical_time_(time) {}
-  virtual ~State() {}
-
-  // Capture the logical time of a LP.
-  void set_time(Time time) { logical_time_ = time; }
-  Time time() const { return logical_time_; }
-
- private:
-  Time logical_time_;
-};
 
 class LogicalProcess : public NamedEntity {
  public:
@@ -69,6 +58,9 @@ class LogicalProcess : public NamedEntity {
                           ProcessEnvironment* process_environment);
 
   void PushState(State* state) { states_.push_back(state); }
+
+private:
+  void ResolveInputQueue(std::vector<Event>* input_queue);
 
   std::vector<Event> input_queue_;
 
