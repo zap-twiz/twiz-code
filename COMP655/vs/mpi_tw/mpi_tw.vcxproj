@@ -81,6 +81,7 @@
     <ClCompile Include="..\..\mpi_tw\mpi_tw.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\mpi_tw\gvt_controller.h" />
     <ClInclude Include="..\..\mpi_tw\mpi_event.h" />
     <ClInclude Include="..\..\mpi_tw\mpi_post_master.h" />
     <ClInclude Include="..\..\mpi_tw\mpi_topology_builder.h" />

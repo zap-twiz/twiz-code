@@ -9,6 +9,19 @@
 #include <set>
 
 void SimulationEngine::TimeStep() {
+  // Check to see if there are ack-messages waiting
+  post_master_->ResolveAckMessages();
+
+  if (post_master_->ReceiveGVTRequest()) {
+    post_master_->SendGVTResponse(LocalVirtualTime());
+  }
+
+  Time gvt;
+  if (post_master_->ReceiveGVTValue(&gvt)) {
+    // fossil collect
+    ReceiveGlobalVirtualTime(gvt);
+  }
+
   if (env_.IsIdle()) {
     // If there are no local events to process, try to extract
     // some from the post-master.
@@ -46,7 +59,8 @@ Time SimulationEngine::LocalVirtualTime() const {
   Time min_time = env_.VirtualTime();
   Time message_ack_time;
 
-  // Check to see if any marked sent messages which need to be accounted.
+  // Check to see if any marked sent messages which need to be accounted
+  // exist.
   if (post_master_->LocalVirtualTimeContribution(&message_ack_time)) {
     min_time = (message_ack_time < min_time) ? message_ack_time : min_time;
   }
@@ -56,4 +70,9 @@ Time SimulationEngine::LocalVirtualTime() const {
 void SimulationEngine::ReceiveGlobalVirtualTime(Time gvt) {
   assert(gvt <= LocalVirtualTime());
   env_.FossilCollect(gvt);
+}
+
+bool SimulationEngine::Finished() const {
+  // TODO:  Implement somehow
+  return false;
 }

@@ -8,12 +8,17 @@ class PostMaster {
   virtual ~PostMaster() {}
   virtual void SendMessage(Event const & event) = 0;
   virtual bool ReceiveMessage(Event* event) = 0;
+  virtual void ResolveAckMessages() = 0;
 
-  bool LocalVirtualTimeContribution(Time* time) const {
+  virtual bool LocalVirtualTimeContribution(Time* time) const {
     // The default behaviour is that the post-master has no
     // contribution to the GVT computations
     return false;
   }
+
+  virtual bool ReceiveGVTRequest() { return false; }
+  virtual bool ReceiveGVTValue(Time* gvt) { return false; }
+  virtual void SendGVTResponse(Time gvt) {}
 
   // TODO:  Remove these!  (OR integrate them better)
   void set_find_mode(bool mode) { find_mode_ = mode; }
@@ -34,7 +39,9 @@ class PartitionedPostMaster : public PostMaster {
     engine_map_[lp_id] = engine;
   }
 
-  bool LocalVirtualTimeContribution(Time* time) const {
+  virtual void ResolveAckMessages() {}
+
+  virtual bool LocalVirtualTimeContribution(Time* time) const {
     // TODO:  Process messages appropriately!
     return false;
   }

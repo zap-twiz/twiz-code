@@ -36,6 +36,8 @@ class SimulationEngine : public NamedEntity {
     return environment()->IsIdle(); 
   }
 
+  bool Finished() const;
+
   // Note that this is the MINIMUM virtual time
   Time LocalVirtualTime() const;
   void ReceiveGlobalVirtualTime(Time gvt);

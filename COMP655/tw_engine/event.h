@@ -31,10 +31,8 @@ class Event {
   int target_process_id() const { return target_process_id_; }
   void set_target_process_id(int id) { target_process_id_ = id; }
 
-#if 0
-  bool find_mode() const { return find_mode_; }
-  void set_find_mode(bool mode) { find_mode_ = mode; }
-#endif
+  bool is_marked() const { return !!marked_; }
+  void set_marked(bool marked) { marked_ = marked; }
 
  private:
   Time send_time_stamp_;
@@ -43,7 +41,7 @@ class Event {
   int type_;
   int sending_process_id_;
   int target_process_id_;
-  //bool find_mode_;
+  char marked_;
 };
 
 inline bool operator<(Event const & e1, Event const & e2) {
@@ -58,8 +56,8 @@ inline bool operator==(Event const &e1, Event const & e2) {
       e1.sending_process_id() == e2.sending_process_id() &&
       e1.target_process_id() == e2.target_process_id();
 
-      // Disregard the find mode setting of this event
-      //e1.find_mode() == e2.find_mode();
+      // Disregard the marked setting of this event
+      //e1.is_marked() == e2.is_marked();
 }
 
 #endif  // INCLUDED_EVENT_H__
