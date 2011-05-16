@@ -8,7 +8,8 @@
 void PartitionedPostMaster::SendMessage(Event const & event) {
     assert(engine_map_.find(event.target_process_id()) != engine_map_.end());
 
-    // TODO:  Clean up the find-mode usage!
+    // Register the event with the input queue of the |ProcessEnvironment| hosted
+    // in the appropriate engine.
     ProcessEnvironment* env =
         engine_map_[event.target_process_id()]->environment();
     env->event_queue().RegisterEvent(event);
