@@ -3,7 +3,11 @@
 
 #include "event.h"
 
-
+// The |PostMaster| interface provides an abstraction for all inter-simulation
+// message sends.  All traffic from within a |ProcessEnvironment| will be routed
+// to a post-master instance.
+// Entry points are also provided for management of GVT-related message
+// processing.
 class PostMaster {
  public:
   virtual ~PostMaster() {}

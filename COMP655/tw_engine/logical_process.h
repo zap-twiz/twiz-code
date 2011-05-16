@@ -39,7 +39,7 @@ class LogicalProcess : public NamedEntity {
   void FossilCollect(Time gvt);
 
  protected:
-  // Returns true if the event was processed, false if it needs to be deferred
+  // Returns true if the event was processed, false if it needs to be deferred.
   bool ProcessEvent(Event const & event,
                     ProcessEnvironment* process_environment);
 
@@ -109,6 +109,8 @@ private:
 
   // The output queue of the LP.  An array of arrays of all events
   // sent for each of the events stored in |processed_events_|.
+  // All of the events stored are the negative versions of the events
+  // sent during processing.
   std::vector< std::vector<Event> > sent_events_;
 
   // The time stamp of the lp.  Equal to the receive time-stamp of the
