@@ -89,19 +89,14 @@ class ConsumerProcess : public LogicalProcess {
   ConsumerProcess(int id) : LogicalProcess(id) {}
   virtual Time Evaluate(Event const & event,
                         ProcessEnvironment* process_environment) {
-#if 1
-    std::cout << "Consumer Received:  " << event.receive_time_stamp() <<
-        " data: " << event.payload() << " type: " << event.type() << std::endl;
-#endif
     return event.receive_time_stamp();
   }
 
  protected:
-  // No state to capture
+  // No state to capture, other than the LP time.
   virtual State* BuildMemento() { return new State(LogicalTime()); }
   virtual void ResurrectMemento(State* state) {
     LogicalProcess::ResurrectMemento(state);
-    /* nothing to do! */
   }
 };
 
