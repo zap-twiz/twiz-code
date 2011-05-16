@@ -8,8 +8,13 @@
 
 #include <iostream>
 
+// This file defines a set of LPs mapping to those given in the assignment.
+
+// A pipeline LP.  This LP receives events, and carries them forward to a
+// target LP.  Processing delay is also introduced to the event time-stamps.
 class PipelineProcess : public LogicalProcess {
  public:
+  // State memento for pipeline LPs.
   class PipelineProcessState : public State {
    public:
     PipelineProcessState(Time time, Random* generator)
@@ -26,6 +31,7 @@ class PipelineProcess : public LogicalProcess {
     delete generator_;
   }
 
+  // Assign the target LP to which this LP will send events.
   void set_target(int target) { target_lp_ = target; }
   
   virtual Time Evaluate(Event const & event,
@@ -36,6 +42,7 @@ class PipelineProcess : public LogicalProcess {
     return new PipelineProcessState(LogicalTime(), generator_->clone());
   }
 
+  // Reconstruct a pipeline LP, given a State memento.
   virtual void ResurrectMemento(State* state) {
     LogicalProcess::ResurrectMemento(state);
     PipelineProcessState* pipeline_state =
@@ -52,15 +59,19 @@ class PipelineProcess : public LogicalProcess {
 
 inline Time PipelineProcess::Evaluate(Event const & event,
                                       ProcessEnvironment* process_environment) {
+  // Generate a random processing time.
   unsigned int process_time = generator_->Generate();
   unsigned int send_time = 0;/*generator_->Generate();*/
 
+  // Construct a new event, incrementing the payload type.
+  // Note:  The increment is arbitrary.
   Event new_event;
   new_event.set_payload(event.payload() + 1);
 
   new_event.set_target_process_id(target_lp_);
   new_event.set_sending_process_id(id());
 
+  // Factor in the processing time to the time of the event.
   new_event.set_send_time_stamp(event.receive_time_stamp() + process_time);
   new_event.set_receive_time_stamp(new_event.send_time_stamp() + send_time);
 
@@ -70,6 +81,9 @@ inline Time PipelineProcess::Evaluate(Event const & event,
   return event.receive_time_stamp();
 }
 
+// A consumer LP class.  The consumer is the LP that receives messages
+// from the input portion of the simulation.  A consumer does not produce
+// any output messages.
 class ConsumerProcess : public LogicalProcess {
  public:
   ConsumerProcess(int id) : LogicalProcess(id) {}
@@ -91,8 +105,12 @@ class ConsumerProcess : public LogicalProcess {
   }
 };
 
+// A GeneratorProcess is an LP that sends messages both to a target process,
+// and back to itself.  By doing-so, it creates an endless stream of messages.
 class GeneratorProcess : public PipelineProcess {
  public:
+  // Memento for the state of a generator process.  Tracks the number
+  // of messages forwarded.
   class GeneratorProcessState : public PipelineProcessState {
    public:
     GeneratorProcessState(int count, Time time, Random* random)
@@ -104,6 +122,8 @@ class GeneratorProcess : public PipelineProcess {
   GeneratorProcess(int id, Random* random)
       : PipelineProcess(id, random), event_count_(0) {}
 
+  // Assign the number of messages to be sent by the generator.
+  // Only |count| messages will be generated.
   void set_count(int count) { event_count_ = count; }
 
   virtual Time Evaluate(Event const & event,
@@ -135,10 +155,12 @@ class GeneratorProcess : public PipelineProcess {
                                      generator()->clone());
   }
 
+  // Restore the state of the generator process.
   virtual void ResurrectMemento(State* state) {
     PipelineProcess::ResurrectMemento(state);
     GeneratorProcessState* generator_state =
         static_cast<GeneratorProcessState*>(state);
+    // Reset the count to reflect the previous state.
     event_count_ = generator_state->event_count();
   }
 

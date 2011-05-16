@@ -215,15 +215,7 @@ void LogicalProcess::SendEvent(Event const& event,
   log() << "Sending Event: " << event.receive_time_stamp() <<
         " to: " << event.target_process_id() << 
         " data: " << event.payload() << " type: " << event.type();
-#if 0
-  if (name() == "Input 1" ) {
-  //if (event.target_process_id() != id()) {
-    std::cout << name() << " sending@: " << event.receive_time_stamp() <<
-        " to " << event.target_process_id() << 
-        " data: " << event.payload() << " type: " << event.type() << std::endl;
-  //}
-  }
-#endif
+
   process_environment->Send(event);
 }
 

@@ -10,7 +10,7 @@
 
 #include "simulation_engine.h"
 #include "partitioned_builder.h"
-#include "post_master.h"
+#include "partitioned_post_master.h"
 
 int _tmain(int argc, _TCHAR* argv[]) {
   std::vector<SimulationEngine> engines;
