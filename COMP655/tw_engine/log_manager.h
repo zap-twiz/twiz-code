@@ -5,12 +5,15 @@
 
 #include <vector>
 
+// LogManager is a helper class for maintaing the lifetimes of Logger instances.
 class LogManager {
  public:
+  // On destruction, free all of the logger instances.
   ~LogManager() {
     std::vector<Logger*>::iterator iter(loggers_.begin()),
       end(loggers_.end());
     for (; iter != end; ++iter) {
+      // Free both the inner output stream, and the logger itself.
       delete (*iter)->log_ptr();
       delete *iter;
     }

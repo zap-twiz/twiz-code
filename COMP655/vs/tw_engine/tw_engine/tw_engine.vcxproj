@@ -81,6 +81,7 @@
     <ClInclude Include="..\..\..\tw_engine\log_manager.h" />
     <ClInclude Include="..\..\..\tw_engine\named_entity.h" />
     <ClInclude Include="..\..\..\tw_engine\partitioned_builder.h" />
+    <ClInclude Include="..\..\..\tw_engine\partitioned_post_master.h" />
     <ClInclude Include="..\..\..\tw_engine\post_master.h" />
     <ClInclude Include="..\..\..\tw_engine\process_environment.h" />
     <ClInclude Include="..\..\..\tw_engine\random.h" />
@@ -95,7 +96,7 @@
     <ClCompile Include="..\..\..\tw_engine\logging.cpp" />
     <ClCompile Include="..\..\..\tw_engine\logical_process.cpp" />
     <ClCompile Include="..\..\..\tw_engine\partitioned_builder.cpp" />
-    <ClCompile Include="..\..\..\tw_engine\post_master.cpp" />
+    <ClCompile Include="..\..\..\tw_engine\partitioned_post_master.cpp" />
     <ClCompile Include="..\..\..\tw_engine\process_environment.cpp" />
     <ClCompile Include="..\..\..\tw_engine\simulation_engine.cpp" />
     <ClCompile Include="..\..\..\tw_engine\stdafx.cpp" />

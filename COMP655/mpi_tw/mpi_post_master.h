@@ -1,7 +1,7 @@
 #ifndef INCLUDED_MPI_POST_MASTER_H_
 #define INCLUDED_MPI_POST_MASTER_H_
 
-#include "post_master.h"
+#include "partitioned_post_master.h"
 #include "mpi_event.h"
 
 #include <map>

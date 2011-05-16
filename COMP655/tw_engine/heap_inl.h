@@ -30,6 +30,8 @@ typename Heap<T, K, A>::Type Heap<T, K, A>::RemoveTop() {
     int const right_index = right_child(index);
     int const left_index = left_child(index);
 
+    // Determine the minimal element of the right child, left child, 
+    // and parent.
     int min_index = index;
     if (right_index < last_index &&
         less_(buffer_[right_index - 1], buffer_[min_index - 1])) {
@@ -41,6 +43,7 @@ typename Heap<T, K, A>::Type Heap<T, K, A>::RemoveTop() {
       min_index = left_index;
     }
 
+    // Swap the minimal values.
     if (min_index != index) {
       std::swap(buffer_[min_index - 1], buffer_[index - 1]);
       index = min_index;

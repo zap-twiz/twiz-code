@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "post_master.h"
+#include "partitioned_post_master.h"
 
 #include "simulation_engine.h"
 

@@ -1,5 +1,6 @@
 
 #include "partitioned_builder.h"
+#include "partitioned_post_master.h"
 
 #include <assert.h>
 
