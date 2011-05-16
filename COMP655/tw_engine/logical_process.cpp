@@ -9,11 +9,14 @@
 
 namespace {
 
+// Basic, brute-force implementation of set-intersect.  Determines the set of
+// of overlapping events in the inputs, |pos_events|, and |neg_events|.
 void PositiveNegativeIntersect(std::vector<Event> const & pos_events,
                                std::vector<Event> const & neg_events,
                                std::vector<Event>* intersection ) {
   intersection->clear();
 
+  // TODO:  Change this from an O(N^2) approach.
   std::vector<Event>::const_iterator neg_iter(neg_events.begin()),
     neg_end(neg_events.end());
   for (; neg_iter != neg_end; ++neg_iter) {
@@ -28,8 +31,15 @@ void PositiveNegativeIntersect(std::vector<Event> const & pos_events,
   }
 }
 
+// Removes all events to be annihilated from |events|.  Given |intersection|,
+// removes all events (both positive and negative) that are in the |events|
+// array and the intersection.
 void DoAnnihilation(std::vector<Event> const & intersection,
                     std::vector<Event>* events) {
+
+  // For each event in the intersection, find the corresponding positive
+  // and negative event in |events|, and remove them.
+  // TODO:  Remove this O(N^2) logic.
   std::vector<Event>::const_iterator annihil_iter(intersection.begin()),
     annihil_end(intersection.end());
   for (; annihil_iter != annihil_end; ++annihil_iter) {
@@ -90,9 +100,11 @@ void LogicalProcess::ResolveInputQueue(std::vector<Event>* input_queue) {
   std::vector<Event>::iterator annihil_iter(intersection.begin()),
     annihil_end(intersection.end());
   for (; annihil_iter != annihil_end; ++annihil_iter) {
+    // Log notification of annihilation.
     log() << "Annihilating Event: " << annihil_iter->receive_time_stamp() <<
         " to: " << annihil_iter->target_process_id() << 
-        " data: " << annihil_iter->payload() << " type: " << annihil_iter->type();
+        " data: " << annihil_iter->payload() << " type: " <<
+        annihil_iter->type();
   }
 
   // Remove all events corresponding to matching positive /negative pairs.
@@ -101,12 +113,16 @@ void LogicalProcess::ResolveInputQueue(std::vector<Event>* input_queue) {
 
 void LogicalProcess::EvaluateInputQueue(
     ProcessEnvironment* process_environment) {
+  // Perform anti-message/message annihilation.
   ResolveInputQueue(&input_queue_);
 
+  // Evaluate all events.
   std::vector<Event> events_postponed;
   std::vector<Event>::iterator input_iter(input_queue_.begin()),
       input_end(input_queue_.end());
   for (; input_iter != input_end; ++input_iter) {
+    // If an event was not processed, keep it in the input queue for
+    // subsequent evaluation.
     if (!ProcessEvent(*input_iter, process_environment)) {
       events_postponed.push_back(*input_iter);
     }
@@ -119,7 +135,6 @@ bool LogicalProcess::ProcessEvent(
     Event const & event,
     ProcessEnvironment* process_environment) {
   bool event_consumed = false;
-
   log() << "Processing event: " << event.receive_time_stamp() <<
         " to: " << event.target_process_id() << 
         " data: " << event.payload() << " type: " << event.type();
@@ -139,6 +154,8 @@ bool LogicalProcess::ProcessFutureEvent(
     ProcessEnvironment* process_environment) {
   assert(event.receive_time_stamp() >= LogicalTime());
   bool event_consumed = false;
+
+  // Process the event as valid.
   if (event.is_positive()) {
     PushState(BuildMemento());
     locally_sent_events_.clear();
@@ -170,6 +187,8 @@ bool LogicalProcess::ProcessHistoricalEvent(
       return false;
   }
 
+  // Roll the LP back in time, and capture the set of events that need
+  // re-processing.
   std::vector<Event> coast_forward_events;
   Rollback(event.receive_time_stamp(), &coast_forward_events,
            process_environment);
@@ -190,7 +209,9 @@ bool LogicalProcess::ProcessHistoricalEvent(
     coast_forward_events.erase(found);
   }
 
-  // Re-post the coast-forward events.
+  // Re-post the coast-forward events to the environment.
+  // TODO:  This sends the events right back into the queue.  They could be directly
+  // evaluated here.
   std::vector<Event>::iterator coast_iter(coast_forward_events.begin()),
       coast_end(coast_forward_events.end());
   for (; coast_iter != coast_end; ++coast_iter) {
@@ -201,6 +222,8 @@ bool LogicalProcess::ProcessHistoricalEvent(
 }
 
 void LogicalProcess::PostProcessEvent(Event const& event) {
+  // |event| has been evaluated, so finalize the structures required to roll
+  // the event back.
   processed_events_.push_back(event);
   sent_events_.push_back(locally_sent_events_);
   locally_sent_events_.clear();
@@ -227,11 +250,12 @@ void LogicalProcess::Rollback(Time time,
 
   log() << "Rolling back to time: " << time;
 
+  // Roll back through the previously processed states, until the last state
+  // evaluated before |time| is found.
   State* previous_state = NULL;
   while (!processed_events_.empty()) {
     Event& most_recent = processed_events_.back();
     if (most_recent.receive_time_stamp() > time) {
-      //ResurrectMemento(states_.back());
       delete previous_state;
       previous_state = states_.back();
       states_.pop_back();
