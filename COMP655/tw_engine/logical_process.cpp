@@ -290,7 +290,7 @@ void LogicalProcess::Rollback(Time time,
 }
 
 Time LogicalProcess::LocalVirtualTime() const {
-  Time min_time= MAX_TIME;
+  Time min_time= local_time_;
   // Return the minimum value of all events presently stored in the
   // input queue.
   // Note:  Under normal operation the input queue will be empty.  Input queue
@@ -330,4 +330,6 @@ void LogicalProcess::FossilCollect(Time gvt) {
   processed_events_.shrink_to_fit();
   sent_events_.shrink_to_fit();
   states_.shrink_to_fit();
+
+  log() << "Fossil Collected: " << offset << " events.";
 }
