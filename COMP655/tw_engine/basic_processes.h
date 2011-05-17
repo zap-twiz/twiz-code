@@ -114,6 +114,7 @@ class GeneratorProcess : public PipelineProcess {
    private:
     int count_;
   };
+
   GeneratorProcess(int id, Random* random)
       : PipelineProcess(id, random), event_count_(0) {}
 

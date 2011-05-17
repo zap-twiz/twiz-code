@@ -23,13 +23,16 @@ class MPIPostMaster : public PartitionedPostMaster {
   virtual void SendGVTResponse(Time gvt);
   virtual bool ReceiveGVTValue(Time* gvt);
 
+  // Register the MPI |rank| for an LP external to the current process.
   void RegisterLPRank(int lp_id, int external_rank) {
     lp_rank_map_[lp_id] = external_rank;
   }
 
+  // Compute the local virtual time of the unacknowledged messages, and the
+  // set of marked acknowledgements.
   virtual bool LocalVirtualTimeContribution(Time* time) const {
     *time = MAX_TIME;
-    // Return the time-stamp of the earlist non-acked event
+    // Return the time-stamp of the earlist non-acked event.
     if (!events_pending_ack_.empty()) {
       *time = events_pending_ack_[0].receive_time_stamp();
       for (size_t x = 1; x < events_pending_ack_.size(); ++x) {
@@ -38,6 +41,7 @@ class MPIPostMaster : public PartitionedPostMaster {
       }
     }
 
+    // Add the contribution from received marked acknowledgements.
     if (marked_event_time_ < *time)
       *time = marked_event_time_;
 
