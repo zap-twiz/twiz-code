@@ -23,6 +23,8 @@ class MPITopologyBuilder : public PartitionedTopologyBuilder {
   }
 
   virtual void PrimeInputPartition(ProcessEnvironment* env) {
+    PartitionedTopologyBuilder::PrimeInputPartition(env);
+#if 0
     Event new_event;
     new_event.set_payload(0);
     new_event.set_type(42);
@@ -41,7 +43,7 @@ class MPITopologyBuilder : public PartitionedTopologyBuilder {
     new_event.set_sending_process_id(1234);
 
     env->Send(new_event);
-
+#endif
   }
   virtual void PrimeOutputPartition(ProcessEnvironment* env) {
     // nothing to do!

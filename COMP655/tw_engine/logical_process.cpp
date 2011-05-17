@@ -72,7 +72,7 @@ LogicalProcess::~LogicalProcess() {
 }
 
 std::ostream& LogicalProcess::log() const {
-  return logger_->log() << name() << ": ";
+  return logger_->log() << name() << "@" << LogicalTime() <<" : ";
 }
 
 void LogicalProcess::ReceiveEvent(Event const & event) {
@@ -113,6 +113,15 @@ void LogicalProcess::ResolveInputQueue(std::vector<Event>* input_queue) {
 
 void LogicalProcess::EvaluateInputQueue(
     ProcessEnvironment* process_environment) {
+
+  std::ostream& log_stream = log();
+  log_stream << "Evaluating Input Queue: [";
+  for (size_t x = 0; x < input_queue_.size(); ++x) {
+    log_stream << "{ time: " << input_queue_[x].receive_time_stamp() <<
+        " payload: " << input_queue_[x].payload() <<
+        " type: " << input_queue_[x].type() << " }, ";
+  }
+  log_stream << "]";
   // Perform anti-message/message annihilation.
   ResolveInputQueue(&input_queue_);
 
@@ -235,7 +244,7 @@ void LogicalProcess::SendEvent(Event const& event,
   locally_sent_events_.push_back(event);
   locally_sent_events_.back().negate();
 
-  log() << "Sending Event: " << event.receive_time_stamp() <<
+  log() << "Sending Event: @" << event.receive_time_stamp() <<
         " to: " << event.target_process_id() << 
         " data: " << event.payload() << " type: " << event.type();
 
@@ -286,7 +295,7 @@ void LogicalProcess::Rollback(Time time,
     delete previous_state;
   }
 
-  log() << "Rolled to " << LogicalTime();
+  log() << "Rolled to: " << LogicalTime();
 }
 
 Time LogicalProcess::LocalVirtualTime() const {
@@ -302,6 +311,8 @@ Time LogicalProcess::LocalVirtualTime() const {
       min_time = input_iter->receive_time_stamp();
     }
   }
+
+  log() << "Computed virtual time: " << min_time;
 
   return min_time;
 }

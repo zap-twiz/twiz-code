@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
       while (!gvt_controller.ReceiveGVTResponse()) {
       }
       gvt_controller.BroadcastGVTValue();
+      // Invoke the GVT algorithm at 500 ms intervals.
       Sleep(500);
     }
   }
