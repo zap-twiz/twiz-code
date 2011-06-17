@@ -1,0 +1,143 @@
+..
+a[2..3]
+// Comment type 1 
+/* Comment type 2 */
+
+// import "chip.thd"
+
+chip not(a) -> out {
+  out<-nand(a, HIGH)
+}
+
+chip not2(a[2]) -> out[2] {
+  out<-[ not(a[0]), not(a[1]) ];
+}
+
+chip not4(a[4]) -> out[4] {
+  out<-[ not2(a[0..1]), not2(a[2..3]) ];
+}
+
+chip not8(a[8]) -> out[8] {
+  out<-[ not4(a[0..3]), not4(a[4..7]) ];
+}
+
+chip and(a, b) -> out {
+  out<-not(nand(a, b));
+}
+
+chip and2(a[2], b[2]) -> out[2] {
+  out<-[ and(a[0], b[0]),
+         and(a[1], b[1]) ];
+}
+
+chip and4(a[4], b[4]) -> out[4] {
+  out<-[ and2(a[0..1], b[0..1]),
+         and2(a[2..3], b[2..3]) ];
+}
+
+chip and8(a[8], b[8]) -> out[8] {
+  out<-[ and4(a[0..3], b[0..3]),
+         and4(a[4..7], b[4..7]) ];
+}
+
+chip or(a, b) -> out {
+  out<-nand(not(a), not(b));
+}
+
+chip or2(a[2], b[2]) -> out[2] {
+  out<-[ or(a[0], b[0]),
+         or(a[1], b[1]) ];
+}
+
+chip or4(a[4], b[4]) -> out[4] {
+  out<-[ or2(a[0, 1], b[0, 1]),
+         or2(a[2, 3], b[2, 3]) ];
+}
+
+chip xor(a, b) -> out {
+  out<-or(and(not(a), b), and(a, not(b)));
+}
+
+chip xor2(a[2], b[2]) -> out[2] {
+  out<-[ xor(a[0], b[0]),
+         xor(a[1], b[1]) ];
+}
+
+chip xor4(a[4], b[4]) -> out[4] {
+  out<-[ xor2(a[0, 1], b[0, 1]),
+         xor2(a[2, 3], b[2, 3]) ];
+}
+
+chip xor8(a[8], b[8]) -> out[8] {
+  out<-[ xor4(a[0..3], b[0..3]),
+         xor4(a[4..7], b[4..7]) ];
+}
+
+chip or8(a[8], b[8]) -> out[4] {
+  out<-[ or4(a[0..3], b[0..3]),
+         or4(a[4..7], b[4..7]) ];  
+}
+
+chip select(sel, in1, in2)-> out {
+  out<-or(and(not(sel), in1), and(sel, in2));
+}
+
+chip select2(sel, in1[2], in2[2]) -> out[2] {
+  out<-[ select(sel, in1[0], in2[0]),
+         select(sel, in1[1], in2[1]) ];  
+}
+
+chip select4(sel, in1[4], in2[4]) -> out[4] {
+  out<-[ select2(sel, in1[0..1], in2[0..1]),
+         select2(sel, in1[2..3], in2[2..3]) ];
+}
+
+chip select8(sel, in1[8], in2[8]) -> out[8] {
+  out<-[ select4(sel, in1[0..3], in2[0..3]),
+         select4(sel, in1[4..7], in2[4..7]) ];
+}
+
+chip mux2(sel, in[2]) -> out {
+  out<-select(sel, in[0], in [1]);
+}
+
+chip mux4(sel[2], in[4]) -> out {
+  wire a[2];
+  a[0]<-mux2(sel[0], in[0, 1]);
+  a[1]<-mux2(sel[0], in[2, 3]);
+  out<-mux2(sel[1], a);
+}
+
+chip mux8(sel[3], in[8]) -> out {
+  wire a[2];
+  a[0]<-mux4(sel[0..1], in[0..3]);
+  a[1]<-mux4(sel[0..1], in[4..7]);
+  
+  out<-mux2(sel[2], a);
+}
+
+chip demux2(sel, in) -> out[2] {
+  out<-select2(sel, [in, LOW], [LOW, in]);
+}
+
+chip demux4(sel[2], in) -> out[4] {
+  wire sel0[2];
+  sel0<-demux2(sel[0], in);
+ 
+  out<-[ select2(sel[1], sel0, [LOW, LOW]),
+         select2(sel[1], [LOW, LOW], sel0) ];
+}
+
+chip demux8(sel[3], in) -> out[8] {
+  wire sel0[4];
+  
+  sel0<-demux4(sel[0..1], in);
+      
+  out<-[ select4(sel[2], sel0, [LOW, LOW, LOW, LOW]),
+         select4(sel[2], [LOW, LOW, LOW, LOW], sel0) ];  
+}
+
+
+
+
+
