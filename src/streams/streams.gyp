@@ -2,12 +2,7 @@
   'includes': [
     '../build/common.gypi',
   ],
-  'target_defaults':
-    {
-      'include_dirs': [
-        '..',
-      ],
-    },
+  'target_defaults': {},
   'targets': [
     {
       'target_name': 'streams',

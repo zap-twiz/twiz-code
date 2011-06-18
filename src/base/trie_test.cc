@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
-#include "lexer/trie.h"
+#include "base/trie.h"
+
 
 namespace {
 
@@ -117,7 +118,6 @@ char const * TrieTest::kTestStrings[] = {
   "woollens",
   NULL
 };
-
 
 // Tests that the Foo::Bar() method does Abc.
 TEST_F(TrieTest, BasicConstruction) {
