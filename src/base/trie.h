@@ -1,7 +1,7 @@
 #ifndef INCLUDED_LEXER_TRIE_H_
 #define INCLUDED_LEXER_TRIE_H_
 
-#include "lexer\trie_node.h"
+#include "base/trie_node.h"
 
 template <typename T, typename V, typename C>
 class TrieMap {
@@ -127,6 +127,6 @@ class TrieMap {
   TrieNode* root_;
 };
 
-#include "trie_inl.h"
+#include "base/trie_inl.h"
 
 #endif  // INCLUDED_LEXER_TRIE_H_

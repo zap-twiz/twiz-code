@@ -5,6 +5,12 @@
 {
   'variables': {
   },
+  
+  'target_defaults': {
+    'include_dirs': [
+      '..',
+    ],
+  },
   'conditions': [
     ['OS == "win"',
       {

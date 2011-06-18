@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "lexer/trie_node.h"
+#include "base/trie_node.h"
 
 
 namespace {

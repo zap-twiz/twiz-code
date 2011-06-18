@@ -85,6 +85,6 @@ class TrieNode {
 template <class T, class V>
 void DeleteTrieDescendents(TrieNode<T, V>* root);
 
-#include "lexer/trie_node_inl.h"
+#include "base/trie_node_inl.h"
 
 #endif  // INCLUDED_LEXER_TRIE_NODE_H_

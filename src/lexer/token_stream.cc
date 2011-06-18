@@ -1,8 +1,8 @@
 
+#include "base/trie.h"
 #include "lexer/lex_utils.h"
 #include "lexer/line_counting_stream.h"
 #include "lexer/token_stream.h"
-#include "lexer/trie.h"
 
 namespace {
 

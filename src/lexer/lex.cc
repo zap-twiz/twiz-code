@@ -1,7 +1,7 @@
 // lex.cpp : Defines the entry point for the console application.
 //
 
-#include "lexer/trie.h"
+#include "base/trie.h"
 
 #include <string>
 
