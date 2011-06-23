@@ -21,8 +21,8 @@ class TokenStreamTest: public ::testing::Test {
     }
   };
 
-  void BuildStream(std::string const & input,
-                   StreamSet* stream_set) {
+  static void BuildStream(std::string const & input,
+                          StreamSet* stream_set) {
     stream_set->string_stream_ = new std::stringstream(input);
     stream_set->io_stream_ = new IoStream(stream_set->string_stream_);
     stream_set->buffered_stream_ =
@@ -185,7 +185,7 @@ TEST_F(TokenStreamTest, IdentifiersReserved) {
 
 TEST_F(TokenStreamTest, Numbers) {
   StreamSet streams;
-  BuildStream("1 10 0x1 0xAF b1 b0 b11110000", &streams);
+  BuildStream("1 10 0x1 0xAF 0b1 0b0 0b11110000", &streams);
   TokenStream token_stream(*streams.buffered_stream_);
   EXPECT_FALSE(token_stream.IsEOS());
 
@@ -207,15 +207,38 @@ TEST_F(TokenStreamTest, Numbers) {
 
   token = token_stream.Get();
   EXPECT_TRUE(Token::NUMBER_BINARY == token.type());
-  EXPECT_TRUE(token.value() == "b1");
+  EXPECT_TRUE(token.value() == "0b1");
 
   token = token_stream.Get();
   EXPECT_TRUE(Token::NUMBER_BINARY == token.type());
-  EXPECT_TRUE(token.value() == "b0");
+  EXPECT_TRUE(token.value() == "0b0");
 
   token = token_stream.Get();
   EXPECT_TRUE(Token::NUMBER_BINARY == token.type());
-  EXPECT_TRUE(token.value() == "b11110000");
+  EXPECT_TRUE(token.value() == "0b11110000");
+}
+
+TEST_F(TokenStreamTest, InvalidNumbers) {
+  StreamSet streams;
+  BuildStream("0xX 0b2 0c", &streams);
+  TokenStream token_stream(*streams.buffered_stream_);
+  EXPECT_FALSE(token_stream.IsEOS());
+
+  Token token = token_stream.Get();
+  EXPECT_TRUE(Token::UNKNOWN == token.type());
+  EXPECT_TRUE(token.value() == "0");
+
+  token = token_stream.Get();
+  EXPECT_TRUE(Token::IDENTIFIER == token.type());
+  EXPECT_TRUE(token.value() == "xX");
+
+  token = token_stream.Get();
+  EXPECT_TRUE(Token::UNKNOWN == token.type());
+  EXPECT_TRUE(token.value() == "0");
+
+  token = token_stream.Get();
+  EXPECT_TRUE(Token::IDENTIFIER == token.type());
+  EXPECT_TRUE(token.value() == "b2");
 }
 
 }  // namespace

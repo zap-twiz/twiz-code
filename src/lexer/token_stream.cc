@@ -60,7 +60,7 @@ const char* kKeyWords[] = {
   "//",
   "/*",
   "0x",
-  "b",
+  "0b",
 };
 
 class TokenConsumer {
@@ -172,6 +172,7 @@ Token TokenStream::Get() {
       }
       break;
     case ::BINARY_PREFIX:
+      input_stream_.Unget(kKeyWords[::BINARY_PREFIX][1]);
       input_stream_.Unget(kKeyWords[::BINARY_PREFIX][0]);
       if (ReadBinaryNumber(input_stream_, &token)) {
         token_type = Token::NUMBER_BINARY;

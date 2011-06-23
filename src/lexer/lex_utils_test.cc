@@ -148,7 +148,7 @@ TEST_F(LexUtilsTest, ReadCPPCommentTail) {
 }
 
 TEST_F(LexUtilsTest, ReadNumber) {
-  const std::string value("A1\n100\n0300\n0x400\n0xAFF\nb1\nb0\n0xnot");
+  const std::string value("A1\n100\n0300\n0x400\n0xAFF\n0b1\n0b0\n0xnot");
   std::stringstream string_stream(value);
   IoStream io_stream(&string_stream);
   BufferedStream<char> buffered_stream(io_stream);
@@ -174,11 +174,11 @@ TEST_F(LexUtilsTest, ReadNumber) {
 
   ReadLine(buffered_stream);
   EXPECT_TRUE(ReadNumber(buffered_stream, &number_value));
-  EXPECT_TRUE(number_value == "b1");
+  EXPECT_TRUE(number_value == "0b1");
 
   ReadLine(buffered_stream);
   EXPECT_TRUE(ReadNumber(buffered_stream, &number_value));
-  EXPECT_TRUE(number_value == "b0");
+  EXPECT_TRUE(number_value == "0b0");
 
   ReadLine(buffered_stream);
   EXPECT_TRUE(ReadNumber(buffered_stream, &number_value));

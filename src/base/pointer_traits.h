@@ -10,7 +10,6 @@
 #endif
 #endif
 
-
 template <class T>
 class Pointer;
 

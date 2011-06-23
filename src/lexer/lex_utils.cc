@@ -139,14 +139,20 @@ bool ReadBinaryNumber(BufferedStream<char>& input, std::string* value) {
   if (input.IsEOS())
     return false;
 
-  std::string number;
   char read = input.Get();
-  if (read != 'b') {
+  if (read != '0') {
     input.Unget(read);
     return false;
   }
 
-  number += 'b';
+  read = input.Get();
+  if (read != 'b') {
+    input.Unget(read);
+    input.Unget('0');
+    return false;
+  }
+
+  std::string number("0b");
   bool is_number = false;
   while (!input.IsEOS()) {
     read = input.Get();
@@ -175,7 +181,6 @@ bool ReadHexNumber(BufferedStream<char>& input, std::string* value) {
   if (input.IsEOS())
     return false;
 
-  std::string number;
   char read = input.Get();
   if (read != '0') {
     input.Unget(read);
@@ -189,7 +194,7 @@ bool ReadHexNumber(BufferedStream<char>& input, std::string* value) {
     return false;
   }
 
-  number = "0x";
+  std::string number("0x");
   bool is_number = false;
   while (!input.IsEOS()) {
     read = input.Get();
