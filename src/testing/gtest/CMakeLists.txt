@@ -1,8 +1,5 @@
 ########################################################################
-# Experimental CMake build script for Google Test.
-#
-# Consider this a prototype.  It will change drastically.  For now,
-# this is only for people on the cutting edge.
+# CMake build script for Google Test.
 #
 # To run the tests for Google Test itself on Linux, use 'make test' or
 # ctest.  You can select which tests to run using 'ctest -R regex'.
@@ -23,6 +20,9 @@ option(gtest_build_tests "Build all of gtest's own tests." OFF)
 
 option(gtest_build_samples "Build gtest's sample programs." OFF)
 
+option(gtest_disable_pthreads "Disable uses of pthreads in gtest." OFF)
+
+# Defines pre_project_set_up_hermetic_build() and set_up_hermetic_build().
 include(cmake/hermetic_build.cmake OPTIONAL)
 
 if (COMMAND pre_project_set_up_hermetic_build)
@@ -46,10 +46,10 @@ if (COMMAND set_up_hermetic_build)
   set_up_hermetic_build()
 endif()
 
-# Defines functions and variables used by Google Test.
+# Define helper functions and macros used by Google Test.
 include(cmake/internal_utils.cmake)
 
-fix_default_settings()  # Defined in internal_utils.cmake.
+config_compiler_and_linker()  # Defined in internal_utils.cmake.
 
 # Where Google Test's .h files can be found.
 include_directories(
@@ -140,10 +140,22 @@ if (gtest_build_tests)
   ############################################################
   # C++ tests built with non-standard compiler flags.
 
-  cxx_library(gtest_no_exception "${cxx_no_exception}"
-    src/gtest-all.cc)
+  # MSVC 7.1 does not support STL with exceptions disabled.
+  if (NOT MSVC OR MSVC_VERSION GREATER 1310)
+    cxx_library(gtest_no_exception "${cxx_no_exception}"
+      src/gtest-all.cc)
+    cxx_library(gtest_main_no_exception "${cxx_no_exception}"
+      src/gtest-all.cc src/gtest_main.cc)
+  endif()
   cxx_library(gtest_main_no_rtti "${cxx_no_rtti}"
     src/gtest-all.cc src/gtest_main.cc)
+
+  cxx_test_with_flags(gtest-death-test_ex_nocatch_test
+    "${cxx_exception} -DGTEST_ENABLE_CATCH_EXCEPTIONS_=0"
+    gtest test/gtest-death-test_ex_test.cc)
+  cxx_test_with_flags(gtest-death-test_ex_catch_test
+    "${cxx_exception} -DGTEST_ENABLE_CATCH_EXCEPTIONS_=1"
+    gtest test/gtest-death-test_ex_test.cc)
 
   cxx_test_with_flags(gtest_no_rtti_unittest "${cxx_no_rtti}"
     gtest_main_no_rtti test/gtest_unittest.cc)
@@ -180,6 +192,22 @@ if (gtest_build_tests)
   cxx_executable(gtest_break_on_failure_unittest_ test gtest)
   py_test(gtest_break_on_failure_unittest)
 
+  # MSVC 7.1 does not support STL with exceptions disabled.
+  if (NOT MSVC OR MSVC_VERSION GREATER 1310)
+    cxx_executable_with_flags(
+      gtest_catch_exceptions_no_ex_test_
+      "${cxx_no_exception}"
+      gtest_main_no_exception
+      test/gtest_catch_exceptions_test_.cc)
+  endif()
+
+  cxx_executable_with_flags(
+    gtest_catch_exceptions_ex_test_
+    "${cxx_exception}"
+    gtest_main
+    test/gtest_catch_exceptions_test_.cc)
+  py_test(gtest_catch_exceptions_test)
+
   cxx_executable(gtest_color_test_ test gtest)
   py_test(gtest_color_test)
 
@@ -201,11 +229,14 @@ if (gtest_build_tests)
   cxx_executable(gtest_shuffle_test_ test gtest)
   py_test(gtest_shuffle_test)
 
-  cxx_executable(gtest_throw_on_failure_test_ test gtest_no_exception)
-  set_target_properties(gtest_throw_on_failure_test_
-    PROPERTIES
-    COMPILE_FLAGS "${cxx_no_exception}")
-  py_test(gtest_throw_on_failure_test)
+  # MSVC 7.1 does not support STL with exceptions disabled.
+  if (NOT MSVC OR MSVC_VERSION GREATER 1310)
+    cxx_executable(gtest_throw_on_failure_test_ test gtest_no_exception)
+    set_target_properties(gtest_throw_on_failure_test_
+      PROPERTIES
+      COMPILE_FLAGS "${cxx_no_exception}")
+    py_test(gtest_throw_on_failure_test)
+  endif()
 
   cxx_executable(gtest_uninitialized_test_ test gtest)
   py_test(gtest_uninitialized_test)

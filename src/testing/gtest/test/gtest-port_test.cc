@@ -31,18 +31,20 @@
 //
 // This file tests the internal cross-platform support utilities.
 
-#include <gtest/internal/gtest-port.h>
+#include "gtest/internal/gtest-port.h"
 
 #include <stdio.h>
 
 #if GTEST_OS_MAC
-#include <time.h>
+# include <time.h>
 #endif  // GTEST_OS_MAC
 
+#include <list>
 #include <utility>  // For std::pair and std::make_pair.
+#include <vector>
 
-#include <gtest/gtest.h>
-#include <gtest/gtest-spi.h>
+#include "gtest/gtest.h"
+#include "gtest/gtest-spi.h"
 
 // Indicates that this translation unit is part of Google Test's
 // implementation.  It must come before gtest-internal-inl.h is
@@ -79,12 +81,12 @@ class Derived : public Base {
 
 TEST(ImplicitCastTest, ConvertsPointers) {
   Derived derived(0);
-  EXPECT_TRUE(&derived == ::testing::internal::implicit_cast<Base*>(&derived));
+  EXPECT_TRUE(&derived == ::testing::internal::ImplicitCast_<Base*>(&derived));
 }
 
 TEST(ImplicitCastTest, CanUseInheritance) {
   Derived derived(1);
-  Base base = ::testing::internal::implicit_cast<Base>(derived);
+  Base base = ::testing::internal::ImplicitCast_<Base>(derived);
   EXPECT_EQ(derived.member(), base.member());
 }
 
@@ -103,7 +105,7 @@ class Castable {
 TEST(ImplicitCastTest, CanUseNonConstCastOperator) {
   bool converted = false;
   Castable castable(&converted);
-  Base base = ::testing::internal::implicit_cast<Base>(castable);
+  Base base = ::testing::internal::ImplicitCast_<Base>(castable);
   EXPECT_TRUE(converted);
 }
 
@@ -122,7 +124,7 @@ class ConstCastable {
 TEST(ImplicitCastTest, CanUseConstCastOperatorOnConstValues) {
   bool converted = false;
   const ConstCastable const_castable(&converted);
-  Base base = ::testing::internal::implicit_cast<Base>(const_castable);
+  Base base = ::testing::internal::ImplicitCast_<Base>(const_castable);
   EXPECT_TRUE(converted);
 }
 
@@ -148,14 +150,14 @@ TEST(ImplicitCastTest, CanSelectBetweenConstAndNonConstCasrAppropriately) {
   bool converted = false;
   bool const_converted = false;
   ConstAndNonConstCastable castable(&converted, &const_converted);
-  Base base = ::testing::internal::implicit_cast<Base>(castable);
+  Base base = ::testing::internal::ImplicitCast_<Base>(castable);
   EXPECT_TRUE(converted);
   EXPECT_FALSE(const_converted);
 
   converted = false;
   const_converted = false;
   const ConstAndNonConstCastable const_castable(&converted, &const_converted);
-  base = ::testing::internal::implicit_cast<Base>(const_castable);
+  base = ::testing::internal::ImplicitCast_<Base>(const_castable);
   EXPECT_FALSE(converted);
   EXPECT_TRUE(const_converted);
 }
@@ -167,8 +169,27 @@ class To {
 
 TEST(ImplicitCastTest, CanUseImplicitConstructor) {
   bool converted = false;
-  To to = ::testing::internal::implicit_cast<To>(&converted);
+  To to = ::testing::internal::ImplicitCast_<To>(&converted);
+  (void)to;
   EXPECT_TRUE(converted);
+}
+
+TEST(IteratorTraitsTest, WorksForSTLContainerIterators) {
+  StaticAssertTypeEq<int,
+      IteratorTraits< ::std::vector<int>::const_iterator>::value_type>();
+  StaticAssertTypeEq<bool,
+      IteratorTraits< ::std::list<bool>::iterator>::value_type>();
+}
+
+TEST(IteratorTraitsTest, WorksForPointerToNonConst) {
+  StaticAssertTypeEq<char, IteratorTraits<char*>::value_type>();
+  StaticAssertTypeEq<const void*, IteratorTraits<const void**>::value_type>();
+}
+
+TEST(IteratorTraitsTest, WorksForPointerToConst) {
+  StaticAssertTypeEq<char, IteratorTraits<const char*>::value_type>();
+  StaticAssertTypeEq<const void*,
+      IteratorTraits<const void* const*>::value_type>();
 }
 
 // Tests that the element_type typedef is available in scoped_ptr and refers
@@ -208,7 +229,45 @@ TEST(GtestCheckSyntaxTest, WorksWithSwitch) {
       GTEST_CHECK_(true) << "Check failed in switch case";
 }
 
-#if GTEST_OS_MAC
+// Verifies behavior of FormatFileLocation.
+TEST(FormatFileLocationTest, FormatsFileLocation) {
+  EXPECT_PRED_FORMAT2(IsSubstring, "foo.cc", FormatFileLocation("foo.cc", 42));
+  EXPECT_PRED_FORMAT2(IsSubstring, "42", FormatFileLocation("foo.cc", 42));
+}
+
+TEST(FormatFileLocationTest, FormatsUnknownFile) {
+  EXPECT_PRED_FORMAT2(
+      IsSubstring, "unknown file", FormatFileLocation(NULL, 42));
+  EXPECT_PRED_FORMAT2(IsSubstring, "42", FormatFileLocation(NULL, 42));
+}
+
+TEST(FormatFileLocationTest, FormatsUknownLine) {
+  EXPECT_EQ("foo.cc:", FormatFileLocation("foo.cc", -1));
+}
+
+TEST(FormatFileLocationTest, FormatsUknownFileAndLine) {
+  EXPECT_EQ("unknown file:", FormatFileLocation(NULL, -1));
+}
+
+// Verifies behavior of FormatCompilerIndependentFileLocation.
+TEST(FormatCompilerIndependentFileLocationTest, FormatsFileLocation) {
+  EXPECT_EQ("foo.cc:42", FormatCompilerIndependentFileLocation("foo.cc", 42));
+}
+
+TEST(FormatCompilerIndependentFileLocationTest, FormatsUknownFile) {
+  EXPECT_EQ("unknown file:42",
+            FormatCompilerIndependentFileLocation(NULL, 42));
+}
+
+TEST(FormatCompilerIndependentFileLocationTest, FormatsUknownLine) {
+  EXPECT_EQ("foo.cc", FormatCompilerIndependentFileLocation("foo.cc", -1));
+}
+
+TEST(FormatCompilerIndependentFileLocationTest, FormatsUknownFileAndLine) {
+  EXPECT_EQ("unknown file", FormatCompilerIndependentFileLocation(NULL, -1));
+}
+
+#if GTEST_OS_MAC || GTEST_OS_QNX
 void* ThreadFunc(void* data) {
   pthread_mutex_t* mutex = static_cast<pthread_mutex_t*>(data);
   pthread_mutex_lock(mutex);
@@ -238,6 +297,8 @@ TEST(GetThreadCountTest, ReturnsCorrectValue) {
   void* dummy;
   ASSERT_EQ(0, pthread_join(thread_id, &dummy));
 
+# if GTEST_OS_MAC
+
   // MacOS X may not immediately report the updated thread count after
   // joining a thread, causing flakiness in this test. To counter that, we
   // wait for up to .5 seconds for the OS to report the correct value.
@@ -247,6 +308,9 @@ TEST(GetThreadCountTest, ReturnsCorrectValue) {
 
     SleepMilliseconds(100);
   }
+
+# endif  // GTEST_OS_MAC
+
   EXPECT_EQ(1U, GetThreadCount());
   pthread_mutex_destroy(&mutex);
 }
@@ -254,7 +318,7 @@ TEST(GetThreadCountTest, ReturnsCorrectValue) {
 TEST(GetThreadCountTest, ReturnsZeroWhenUnableToCountThreads) {
   EXPECT_EQ(0U, GetThreadCount());
 }
-#endif  // GTEST_OS_MAC
+#endif  // GTEST_OS_MAC || GTEST_OS_QNX
 
 TEST(GtestCheckDeathTest, DiesWithCorrectOutputOnFailure) {
   const bool a_false_condition = false;
@@ -289,15 +353,19 @@ TEST(GtestCheckDeathTest, LivesSilentlyOnSuccess) {
 // For simplicity, we only cover the most important platforms here.
 TEST(RegexEngineSelectionTest, SelectsCorrectRegexEngine) {
 #if GTEST_HAS_POSIX_RE
+
   EXPECT_TRUE(GTEST_USES_POSIX_RE);
+
 #else
+
   EXPECT_TRUE(GTEST_USES_SIMPLE_RE);
+
 #endif
 }
 
 #if GTEST_USES_POSIX_RE
 
-#if GTEST_HAS_TYPED_TEST
+# if GTEST_HAS_TYPED_TEST
 
 template <typename Str>
 class RETest : public ::testing::Test {};
@@ -306,9 +374,9 @@ class RETest : public ::testing::Test {};
 // supports.
 typedef testing::Types<
     ::std::string,
-#if GTEST_HAS_GLOBAL_STRING
+#  if GTEST_HAS_GLOBAL_STRING
     ::string,
-#endif  // GTEST_HAS_GLOBAL_STRING
+#  endif  // GTEST_HAS_GLOBAL_STRING
     const char*> StringTypes;
 
 TYPED_TEST_CASE(RETest, StringTypes);
@@ -359,7 +427,7 @@ TYPED_TEST(RETest, PartialMatchWorks) {
   EXPECT_FALSE(RE::PartialMatch(TypeParam("zza"), re));
 }
 
-#endif  // GTEST_HAS_TYPED_TEST
+# endif  // GTEST_HAS_TYPED_TEST
 
 #elif GTEST_USES_SIMPLE_RE
 
@@ -377,33 +445,33 @@ TEST(IsInSetTest, WorksForNonNulChars) {
   EXPECT_TRUE(IsInSet('b', "ab"));
 }
 
-TEST(IsDigitTest, IsFalseForNonDigit) {
-  EXPECT_FALSE(IsDigit('\0'));
-  EXPECT_FALSE(IsDigit(' '));
-  EXPECT_FALSE(IsDigit('+'));
-  EXPECT_FALSE(IsDigit('-'));
-  EXPECT_FALSE(IsDigit('.'));
-  EXPECT_FALSE(IsDigit('a'));
+TEST(IsAsciiDigitTest, IsFalseForNonDigit) {
+  EXPECT_FALSE(IsAsciiDigit('\0'));
+  EXPECT_FALSE(IsAsciiDigit(' '));
+  EXPECT_FALSE(IsAsciiDigit('+'));
+  EXPECT_FALSE(IsAsciiDigit('-'));
+  EXPECT_FALSE(IsAsciiDigit('.'));
+  EXPECT_FALSE(IsAsciiDigit('a'));
 }
 
-TEST(IsDigitTest, IsTrueForDigit) {
-  EXPECT_TRUE(IsDigit('0'));
-  EXPECT_TRUE(IsDigit('1'));
-  EXPECT_TRUE(IsDigit('5'));
-  EXPECT_TRUE(IsDigit('9'));
+TEST(IsAsciiDigitTest, IsTrueForDigit) {
+  EXPECT_TRUE(IsAsciiDigit('0'));
+  EXPECT_TRUE(IsAsciiDigit('1'));
+  EXPECT_TRUE(IsAsciiDigit('5'));
+  EXPECT_TRUE(IsAsciiDigit('9'));
 }
 
-TEST(IsPunctTest, IsFalseForNonPunct) {
-  EXPECT_FALSE(IsPunct('\0'));
-  EXPECT_FALSE(IsPunct(' '));
-  EXPECT_FALSE(IsPunct('\n'));
-  EXPECT_FALSE(IsPunct('a'));
-  EXPECT_FALSE(IsPunct('0'));
+TEST(IsAsciiPunctTest, IsFalseForNonPunct) {
+  EXPECT_FALSE(IsAsciiPunct('\0'));
+  EXPECT_FALSE(IsAsciiPunct(' '));
+  EXPECT_FALSE(IsAsciiPunct('\n'));
+  EXPECT_FALSE(IsAsciiPunct('a'));
+  EXPECT_FALSE(IsAsciiPunct('0'));
 }
 
-TEST(IsPunctTest, IsTrueForPunct) {
+TEST(IsAsciiPunctTest, IsTrueForPunct) {
   for (const char* p = "^-!\"#$%&'()*+,./:;<=>?@[\\]_`{|}~"; *p; p++) {
-    EXPECT_PRED1(IsPunct, *p);
+    EXPECT_PRED1(IsAsciiPunct, *p);
   }
 }
 
@@ -421,47 +489,47 @@ TEST(IsRepeatTest, IsTrueForRepeatChar) {
   EXPECT_TRUE(IsRepeat('+'));
 }
 
-TEST(IsWhiteSpaceTest, IsFalseForNonWhiteSpace) {
-  EXPECT_FALSE(IsWhiteSpace('\0'));
-  EXPECT_FALSE(IsWhiteSpace('a'));
-  EXPECT_FALSE(IsWhiteSpace('1'));
-  EXPECT_FALSE(IsWhiteSpace('+'));
-  EXPECT_FALSE(IsWhiteSpace('_'));
+TEST(IsAsciiWhiteSpaceTest, IsFalseForNonWhiteSpace) {
+  EXPECT_FALSE(IsAsciiWhiteSpace('\0'));
+  EXPECT_FALSE(IsAsciiWhiteSpace('a'));
+  EXPECT_FALSE(IsAsciiWhiteSpace('1'));
+  EXPECT_FALSE(IsAsciiWhiteSpace('+'));
+  EXPECT_FALSE(IsAsciiWhiteSpace('_'));
 }
 
-TEST(IsWhiteSpaceTest, IsTrueForWhiteSpace) {
-  EXPECT_TRUE(IsWhiteSpace(' '));
-  EXPECT_TRUE(IsWhiteSpace('\n'));
-  EXPECT_TRUE(IsWhiteSpace('\r'));
-  EXPECT_TRUE(IsWhiteSpace('\t'));
-  EXPECT_TRUE(IsWhiteSpace('\v'));
-  EXPECT_TRUE(IsWhiteSpace('\f'));
+TEST(IsAsciiWhiteSpaceTest, IsTrueForWhiteSpace) {
+  EXPECT_TRUE(IsAsciiWhiteSpace(' '));
+  EXPECT_TRUE(IsAsciiWhiteSpace('\n'));
+  EXPECT_TRUE(IsAsciiWhiteSpace('\r'));
+  EXPECT_TRUE(IsAsciiWhiteSpace('\t'));
+  EXPECT_TRUE(IsAsciiWhiteSpace('\v'));
+  EXPECT_TRUE(IsAsciiWhiteSpace('\f'));
 }
 
-TEST(IsWordCharTest, IsFalseForNonWordChar) {
-  EXPECT_FALSE(IsWordChar('\0'));
-  EXPECT_FALSE(IsWordChar('+'));
-  EXPECT_FALSE(IsWordChar('.'));
-  EXPECT_FALSE(IsWordChar(' '));
-  EXPECT_FALSE(IsWordChar('\n'));
+TEST(IsAsciiWordCharTest, IsFalseForNonWordChar) {
+  EXPECT_FALSE(IsAsciiWordChar('\0'));
+  EXPECT_FALSE(IsAsciiWordChar('+'));
+  EXPECT_FALSE(IsAsciiWordChar('.'));
+  EXPECT_FALSE(IsAsciiWordChar(' '));
+  EXPECT_FALSE(IsAsciiWordChar('\n'));
 }
 
-TEST(IsWordCharTest, IsTrueForLetter) {
-  EXPECT_TRUE(IsWordChar('a'));
-  EXPECT_TRUE(IsWordChar('b'));
-  EXPECT_TRUE(IsWordChar('A'));
-  EXPECT_TRUE(IsWordChar('Z'));
+TEST(IsAsciiWordCharTest, IsTrueForLetter) {
+  EXPECT_TRUE(IsAsciiWordChar('a'));
+  EXPECT_TRUE(IsAsciiWordChar('b'));
+  EXPECT_TRUE(IsAsciiWordChar('A'));
+  EXPECT_TRUE(IsAsciiWordChar('Z'));
 }
 
-TEST(IsWordCharTest, IsTrueForDigit) {
-  EXPECT_TRUE(IsWordChar('0'));
-  EXPECT_TRUE(IsWordChar('1'));
-  EXPECT_TRUE(IsWordChar('7'));
-  EXPECT_TRUE(IsWordChar('9'));
+TEST(IsAsciiWordCharTest, IsTrueForDigit) {
+  EXPECT_TRUE(IsAsciiWordChar('0'));
+  EXPECT_TRUE(IsAsciiWordChar('1'));
+  EXPECT_TRUE(IsAsciiWordChar('7'));
+  EXPECT_TRUE(IsAsciiWordChar('9'));
 }
 
-TEST(IsWordCharTest, IsTrueForUnderscore) {
-  EXPECT_TRUE(IsWordChar('_'));
+TEST(IsAsciiWordCharTest, IsTrueForUnderscore) {
+  EXPECT_TRUE(IsAsciiWordChar('_'));
 }
 
 TEST(IsValidEscapeTest, IsFalseForNonPrintable) {

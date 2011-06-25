@@ -33,7 +33,7 @@
 //
 // This file tests the universal value printer.
 
-#include <gtest/gtest-printers.h>
+#include "gtest/gtest-printers.h"
 
 #include <ctype.h>
 #include <limits.h>
@@ -48,17 +48,53 @@
 #include <utility>
 #include <vector>
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-// hash_map and hash_set are available on Windows.
-#if GTEST_OS_WINDOWS
-#define GTEST_HAS_HASH_MAP_ 1  // Indicates that hash_map is available.
-#include <hash_map>            // NOLINT
-#define GTEST_HAS_HASH_SET_ 1  // Indicates that hash_set is available.
-#include <hash_set>            // NOLINT
+// hash_map and hash_set are available under Visual C++.
+#if _MSC_VER
+# define GTEST_HAS_HASH_MAP_ 1  // Indicates that hash_map is available.
+# include <hash_map>            // NOLINT
+# define GTEST_HAS_HASH_SET_ 1  // Indicates that hash_set is available.
+# include <hash_set>            // NOLINT
 #endif  // GTEST_OS_WINDOWS
 
 // Some user-defined types for testing the universal value printer.
+
+// An anonymous enum type.
+enum AnonymousEnum {
+  kAE1 = -1,
+  kAE2 = 1
+};
+
+// An enum without a user-defined printer.
+enum EnumWithoutPrinter {
+  kEWP1 = -2,
+  kEWP2 = 42
+};
+
+// An enum with a << operator.
+enum EnumWithStreaming {
+  kEWS1 = 10
+};
+
+std::ostream& operator<<(std::ostream& os, EnumWithStreaming e) {
+  return os << (e == kEWS1 ? "kEWS1" : "invalid");
+}
+
+// An enum with a PrintTo() function.
+enum EnumWithPrintTo {
+  kEWPT1 = 1
+};
+
+void PrintTo(EnumWithPrintTo e, std::ostream* os) {
+  *os << (e == kEWPT1 ? "kEWPT1" : "invalid");
+}
+
+// A class implicitly convertible to BiggestInt.
+class BiggestIntConvertible {
+ public:
+  operator ::testing::internal::BiggestInt() const { return 42; }
+};
 
 // A user-defined unprintable class template in the global namespace.
 template <typename T>
@@ -176,17 +212,15 @@ using ::std::tr1::make_tuple;
 using ::std::tr1::tuple;
 #endif
 
-#if GTEST_OS_WINDOWS
+#if _MSC_VER
 // MSVC defines the following classes in the ::stdext namespace while
 // gcc defines them in the :: namespace.  Note that they are not part
 // of the C++ standard.
-
 using ::stdext::hash_map;
 using ::stdext::hash_set;
 using ::stdext::hash_multimap;
 using ::stdext::hash_multiset;
-
-#endif  // GTEST_OS_WINDOWS
+#endif
 
 // Prints a value to a string using the universal value printer.  This
 // is a helper for testing UniversalPrinter<T>::Print() for various types.
@@ -207,6 +241,34 @@ string PrintByRef(const T& value) {
   return ss.str();
 }
 
+// Tests printing various enum types.
+
+TEST(PrintEnumTest, AnonymousEnum) {
+  EXPECT_EQ("-1", Print(kAE1));
+  EXPECT_EQ("1", Print(kAE2));
+}
+
+TEST(PrintEnumTest, EnumWithoutPrinter) {
+  EXPECT_EQ("-2", Print(kEWP1));
+  EXPECT_EQ("42", Print(kEWP2));
+}
+
+TEST(PrintEnumTest, EnumWithStreaming) {
+  EXPECT_EQ("kEWS1", Print(kEWS1));
+  EXPECT_EQ("invalid", Print(static_cast<EnumWithStreaming>(0)));
+}
+
+TEST(PrintEnumTest, EnumWithPrintTo) {
+  EXPECT_EQ("kEWPT1", Print(kEWPT1));
+  EXPECT_EQ("invalid", Print(static_cast<EnumWithPrintTo>(0)));
+}
+
+// Tests printing a class implicitly convertible to BiggestInt.
+
+TEST(PrintClassTest, BiggestIntConvertible) {
+  EXPECT_EQ("42", Print(BiggestIntConvertible()));
+}
+
 // Tests printing various char types.
 
 // char.
@@ -214,7 +276,7 @@ TEST(PrintCharTest, PlainChar) {
   EXPECT_EQ("'\\0'", Print('\0'));
   EXPECT_EQ("'\\'' (39, 0x27)", Print('\''));
   EXPECT_EQ("'\"' (34, 0x22)", Print('"'));
-  EXPECT_EQ("'\\?' (63, 0x3F)", Print('\?'));
+  EXPECT_EQ("'?' (63, 0x3F)", Print('?'));
   EXPECT_EQ("'\\\\' (92, 0x5C)", Print('\\'));
   EXPECT_EQ("'\\a' (7)", Print('\a'));
   EXPECT_EQ("'\\b' (8)", Print('\b'));
@@ -256,7 +318,7 @@ TEST(PrintBuiltInTypeTest, Wchar_t) {
   EXPECT_EQ("L'\\0'", Print(L'\0'));
   EXPECT_EQ("L'\\'' (39, 0x27)", Print(L'\''));
   EXPECT_EQ("L'\"' (34, 0x22)", Print(L'"'));
-  EXPECT_EQ("L'\\?' (63, 0x3F)", Print(L'\?'));
+  EXPECT_EQ("L'?' (63, 0x3F)", Print(L'?'));
   EXPECT_EQ("L'\\\\' (92, 0x5C)", Print(L'\\'));
   EXPECT_EQ("L'\\a' (7)", Print(L'\a'));
   EXPECT_EQ("L'\\b' (8)", Print(L'\b'));
@@ -269,8 +331,8 @@ TEST(PrintBuiltInTypeTest, Wchar_t) {
   EXPECT_EQ("L'\\xFF' (255)", Print(L'\xFF'));
   EXPECT_EQ("L' ' (32, 0x20)", Print(L' '));
   EXPECT_EQ("L'a' (97, 0x61)", Print(L'a'));
-  EXPECT_EQ("L'\\x576' (1398)", Print(L'\x576'));
-  EXPECT_EQ("L'\\xC74D' (51021)", Print(L'\xC74D'));
+  EXPECT_EQ("L'\\x576' (1398)", Print(static_cast<wchar_t>(0x576)));
+  EXPECT_EQ("L'\\xC74D' (51021)", Print(static_cast<wchar_t>(0xC74D)));
 }
 
 // Test that Int64 provides more storage than wchar_t.
@@ -339,8 +401,8 @@ TEST(PrintCStringTest, Null) {
 
 // Tests that C strings are escaped properly.
 TEST(PrintCStringTest, EscapesProperly) {
-  const char* p = "'\"\?\\\a\b\f\n\r\t\v\x7F\xFF a";
-  EXPECT_EQ(PrintPointer(p) + " pointing to \"'\\\"\\?\\\\\\a\\b\\f"
+  const char* p = "'\"?\\\a\b\f\n\r\t\v\x7F\xFF a";
+  EXPECT_EQ(PrintPointer(p) + " pointing to \"'\\\"?\\\\\\a\\b\\f"
             "\\n\\r\\t\\v\\x7F\\xFF a\"",
             Print(p));
 }
@@ -376,10 +438,11 @@ TEST(PrintWideCStringTest, Null) {
 
 // Tests that wide C strings are escaped properly.
 TEST(PrintWideCStringTest, EscapesProperly) {
-  const wchar_t* p = L"'\"\?\\\a\b\f\n\r\t\v\xD3\x576\x8D3\xC74D a";
-  EXPECT_EQ(PrintPointer(p) + " pointing to L\"'\\\"\\?\\\\\\a\\b\\f"
+  const wchar_t s[] = {'\'', '"', '?', '\\', '\a', '\b', '\f', '\n', '\r',
+                       '\t', '\v', 0xD3, 0x576, 0x8D3, 0xC74D, ' ', 'a', '\0'};
+  EXPECT_EQ(PrintPointer(s) + " pointing to L\"'\\\"?\\\\\\a\\b\\f"
             "\\n\\r\\t\\v\\xD3\\x576\\x8D3\\xC74D a\"",
-            Print(p));
+            Print(static_cast<const wchar_t*>(s)));
 }
 #endif  // native wchar_t
 
@@ -580,19 +643,33 @@ TEST(PrintArrayTest, BigArray) {
 #if GTEST_HAS_GLOBAL_STRING
 // ::string.
 TEST(PrintStringTest, StringInGlobalNamespace) {
-  const char s[] = "'\"\?\\\a\b\f\n\0\r\t\v\x7F\xFF a";
+  const char s[] = "'\"?\\\a\b\f\n\0\r\t\v\x7F\xFF a";
   const ::string str(s, sizeof(s));
-  EXPECT_EQ("\"'\\\"\\?\\\\\\a\\b\\f\\n\\0\\r\\t\\v\\x7F\\xFF a\\0\"",
+  EXPECT_EQ("\"'\\\"?\\\\\\a\\b\\f\\n\\0\\r\\t\\v\\x7F\\xFF a\\0\"",
             Print(str));
 }
 #endif  // GTEST_HAS_GLOBAL_STRING
 
 // ::std::string.
 TEST(PrintStringTest, StringInStdNamespace) {
-  const char s[] = "'\"\?\\\a\b\f\n\0\r\t\v\x7F\xFF a";
+  const char s[] = "'\"?\\\a\b\f\n\0\r\t\v\x7F\xFF a";
   const ::std::string str(s, sizeof(s));
-  EXPECT_EQ("\"'\\\"\\?\\\\\\a\\b\\f\\n\\0\\r\\t\\v\\x7F\\xFF a\\0\"",
+  EXPECT_EQ("\"'\\\"?\\\\\\a\\b\\f\\n\\0\\r\\t\\v\\x7F\\xFF a\\0\"",
             Print(str));
+}
+
+TEST(PrintStringTest, StringAmbiguousHex) {
+  // "\x6BANANA" is ambiguous, it can be interpreted as starting with either of:
+  // '\x6', '\x6B', or '\x6BA'.
+
+  // a hex escaping sequence following by a decimal digit
+  EXPECT_EQ("\"0\\x12\" \"3\"", Print(::std::string("0\x12" "3")));
+  // a hex escaping sequence following by a hex digit (lower-case)
+  EXPECT_EQ("\"mm\\x6\" \"bananas\"", Print(::std::string("mm\x6" "bananas")));
+  // a hex escaping sequence following by a hex digit (upper-case)
+  EXPECT_EQ("\"NOM\\x6\" \"BANANA\"", Print(::std::string("NOM\x6" "BANANA")));
+  // a hex escaping sequence following by a non-xdigit
+  EXPECT_EQ("\"!\\x5-!\"", Print(::std::string("!\x5-!")));
 }
 
 // Tests printing ::wstring and ::std::wstring.
@@ -600,9 +677,9 @@ TEST(PrintStringTest, StringInStdNamespace) {
 #if GTEST_HAS_GLOBAL_WSTRING
 // ::wstring.
 TEST(PrintWideStringTest, StringInGlobalNamespace) {
-  const wchar_t s[] = L"'\"\?\\\a\b\f\n\0\r\t\v\xD3\x576\x8D3\xC74D a";
+  const wchar_t s[] = L"'\"?\\\a\b\f\n\0\r\t\v\xD3\x576\x8D3\xC74D a";
   const ::wstring str(s, sizeof(s)/sizeof(wchar_t));
-  EXPECT_EQ("L\"'\\\"\\?\\\\\\a\\b\\f\\n\\0\\r\\t\\v"
+  EXPECT_EQ("L\"'\\\"?\\\\\\a\\b\\f\\n\\0\\r\\t\\v"
             "\\xD3\\x576\\x8D3\\xC74D a\\0\"",
             Print(str));
 }
@@ -611,11 +688,21 @@ TEST(PrintWideStringTest, StringInGlobalNamespace) {
 #if GTEST_HAS_STD_WSTRING
 // ::std::wstring.
 TEST(PrintWideStringTest, StringInStdNamespace) {
-  const wchar_t s[] = L"'\"\?\\\a\b\f\n\0\r\t\v\xD3\x576\x8D3\xC74D a";
+  const wchar_t s[] = L"'\"?\\\a\b\f\n\0\r\t\v\xD3\x576\x8D3\xC74D a";
   const ::std::wstring str(s, sizeof(s)/sizeof(wchar_t));
-  EXPECT_EQ("L\"'\\\"\\?\\\\\\a\\b\\f\\n\\0\\r\\t\\v"
+  EXPECT_EQ("L\"'\\\"?\\\\\\a\\b\\f\\n\\0\\r\\t\\v"
             "\\xD3\\x576\\x8D3\\xC74D a\\0\"",
             Print(str));
+}
+
+TEST(PrintWideStringTest, StringAmbiguousHex) {
+  // same for wide strings.
+  EXPECT_EQ("L\"0\\x12\" L\"3\"", Print(::std::wstring(L"0\x12" L"3")));
+  EXPECT_EQ("L\"mm\\x6\" L\"bananas\"",
+            Print(::std::wstring(L"mm\x6" L"bananas")));
+  EXPECT_EQ("L\"NOM\\x6\" L\"BANANA\"",
+            Print(::std::wstring(L"NOM\x6" L"BANANA")));
+  EXPECT_EQ("L\"!\\x5-!\"", Print(::std::wstring(L"!\x5-!")));
 }
 #endif  // GTEST_HAS_STD_WSTRING
 
@@ -753,7 +840,7 @@ TEST(PrintStlContainerTest, HashMultiSet) {
   std::vector<int> numbers;
   for (size_t i = 0; i != result.length(); i++) {
     if (expected_pattern[i] == 'd') {
-      ASSERT_TRUE(isdigit(result[i]) != 0);
+      ASSERT_TRUE(isdigit(static_cast<unsigned char>(result[i])) != 0);
       numbers.push_back(result[i] - '0');
     } else {
       EXPECT_EQ(expected_pattern[i], result[i]) << " where result is "
@@ -770,7 +857,7 @@ TEST(PrintStlContainerTest, HashMultiSet) {
 #endif  // GTEST_HAS_HASH_SET_
 
 TEST(PrintStlContainerTest, List) {
-  const char* a[] = {
+  const string a[] = {
     "hello",
     "world"
   };
@@ -788,9 +875,15 @@ TEST(PrintStlContainerTest, Map) {
 
 TEST(PrintStlContainerTest, MultiMap) {
   multimap<bool, int> map1;
-  map1.insert(make_pair(true, 0));
-  map1.insert(make_pair(true, 1));
-  map1.insert(make_pair(false, 2));
+  // The make_pair template function would deduce the type as
+  // pair<bool, int> here, and since the key part in a multimap has to
+  // be constant, without a templated ctor in the pair class (as in
+  // libCstd on Solaris), make_pair call would fail to compile as no
+  // implicit conversion is found.  Thus explicit typename is used
+  // here instead.
+  map1.insert(pair<const bool, int>(true, 0));
+  map1.insert(pair<const bool, int>(true, 1));
+  map1.insert(pair<const bool, int>(false, 2));
   EXPECT_EQ("{ (false, 2), (true, 0), (true, 1) }", Print(map1));
 }
 
@@ -847,6 +940,28 @@ TEST(PrintStlContainerTest, TwoDimensionalNativeArray) {
   const int a[2][3] = { { 1, 2, 3 }, { 4, 5, 6 } };
   NativeArray<int[3]> b(a, 2, kReference);
   EXPECT_EQ("{ { 1, 2, 3 }, { 4, 5, 6 } }", Print(b));
+}
+
+// Tests that a class named iterator isn't treated as a container.
+
+struct iterator {
+  char x;
+};
+
+TEST(PrintStlContainerTest, Iterator) {
+  iterator it = {};
+  EXPECT_EQ("1-byte object <00>", Print(it));
+}
+
+// Tests that a class named const_iterator isn't treated as a container.
+
+struct const_iterator {
+  char x;
+};
+
+TEST(PrintStlContainerTest, ConstIterator) {
+  const_iterator it = {};
+  EXPECT_EQ("1-byte object <00>", Print(it));
 }
 
 #if GTEST_HAS_TR1_TUPLE
@@ -908,12 +1023,12 @@ TEST(PrintTupleTest, NestedTuple) {
 // Unprintable types in the global namespace.
 TEST(PrintUnprintableTypeTest, InGlobalNamespace) {
   EXPECT_EQ("1-byte object <00>",
-            Print(UnprintableTemplateInGlobal<bool>()));
+            Print(UnprintableTemplateInGlobal<char>()));
 }
 
 // Unprintable types in a user namespace.
 TEST(PrintUnprintableTypeTest, InUserNamespace) {
-  EXPECT_EQ("16-byte object <EF12 0000 34AB 0000 0000 0000 0000 0000>",
+  EXPECT_EQ("16-byte object <EF-12 00-00 34-AB 00-00 00-00 00-00 00-00 00-00>",
             Print(::foo::UnprintableInFoo()));
 }
 
@@ -925,13 +1040,13 @@ struct Big {
 };
 
 TEST(PrintUnpritableTypeTest, BigObject) {
-  EXPECT_EQ("257-byte object <0000 0000 0000 0000 0000 0000 "
-            "0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 "
-            "0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 "
-            "0000 0000 0000 0000 0000 0000 ... 0000 0000 0000 "
-            "0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 "
-            "0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 "
-            "0000 0000 0000 0000 0000 0000 0000 0000 00>",
+  EXPECT_EQ("257-byte object <00-00 00-00 00-00 00-00 00-00 00-00 "
+            "00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 "
+            "00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 "
+            "00-00 00-00 00-00 00-00 00-00 00-00 ... 00-00 00-00 00-00 "
+            "00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 "
+            "00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 "
+            "00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00>",
             Print(Big()));
 }
 
@@ -1022,7 +1137,7 @@ TEST(PrintReferenceTest, PrintsAddressAndValue) {
 
   const ::foo::UnprintableInFoo x;
   EXPECT_EQ("@" + PrintPointer(&x) + " 16-byte object "
-            "<EF12 0000 34AB 0000 0000 0000 0000 0000>",
+            "<EF-12 00-00 34-AB 00-00 00-00 00-00 00-00 00-00>",
             PrintByRef(x));
 }
 
