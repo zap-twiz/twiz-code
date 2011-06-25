@@ -1,7 +1,7 @@
 K 25
 svn:wc:ra_dav:version-url
 V 53
-/svn/!svn/ver/385/trunk/xcode/Samples/FrameworkSample
+/svn/!svn/ver/482/trunk/xcode/Samples/FrameworkSample
 END
 runtests.sh
 K 25
@@ -19,7 +19,7 @@ widget_test.cc
 K 25
 svn:wc:ra_dav:version-url
 V 68
-/svn/!svn/ver/385/trunk/xcode/Samples/FrameworkSample/widget_test.cc
+/svn/!svn/ver/482/trunk/xcode/Samples/FrameworkSample/widget_test.cc
 END
 widget.cc
 K 25

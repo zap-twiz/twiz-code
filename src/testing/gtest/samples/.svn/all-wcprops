@@ -1,19 +1,13 @@
 K 25
 svn:wc:ra_dav:version-url
 V 31
-/svn/!svn/ver/439/trunk/samples
+/svn/!svn/ver/512/trunk/samples
 END
 sample1_unittest.cc
 K 25
 svn:wc:ra_dav:version-url
-V 50
-/svn/!svn/ver/40/trunk/samples/sample1_unittest.cc
-END
-sample2_unittest.cc
-K 25
-svn:wc:ra_dav:version-url
 V 51
-/svn/!svn/ver/383/trunk/samples/sample2_unittest.cc
+/svn/!svn/ver/482/trunk/samples/sample1_unittest.cc
 END
 sample1.cc
 K 25
@@ -21,11 +15,11 @@ svn:wc:ra_dav:version-url
 V 41
 /svn/!svn/ver/40/trunk/samples/sample1.cc
 END
-sample3_unittest.cc
+sample2_unittest.cc
 K 25
 svn:wc:ra_dav:version-url
 V 51
-/svn/!svn/ver/383/trunk/samples/sample3_unittest.cc
+/svn/!svn/ver/482/trunk/samples/sample2_unittest.cc
 END
 sample2.cc
 K 25
@@ -33,11 +27,11 @@ svn:wc:ra_dav:version-url
 V 42
 /svn/!svn/ver/383/trunk/samples/sample2.cc
 END
-sample4_unittest.cc
+sample3_unittest.cc
 K 25
 svn:wc:ra_dav:version-url
-V 50
-/svn/!svn/ver/40/trunk/samples/sample4_unittest.cc
+V 51
+/svn/!svn/ver/482/trunk/samples/sample3_unittest.cc
 END
 sample1.h
 K 25
@@ -45,17 +39,11 @@ svn:wc:ra_dav:version-url
 V 40
 /svn/!svn/ver/40/trunk/samples/sample1.h
 END
-sample2.h
-K 25
-svn:wc:ra_dav:version-url
-V 41
-/svn/!svn/ver/383/trunk/samples/sample2.h
-END
-sample5_unittest.cc
+sample4_unittest.cc
 K 25
 svn:wc:ra_dav:version-url
 V 51
-/svn/!svn/ver/383/trunk/samples/sample5_unittest.cc
+/svn/!svn/ver/482/trunk/samples/sample4_unittest.cc
 END
 sample4.cc
 K 25
@@ -63,11 +51,29 @@ svn:wc:ra_dav:version-url
 V 41
 /svn/!svn/ver/40/trunk/samples/sample4.cc
 END
+sample5_unittest.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/482/trunk/samples/sample5_unittest.cc
+END
+sample2.h
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/svn/!svn/ver/383/trunk/samples/sample2.h
+END
 sample6_unittest.cc
 K 25
 svn:wc:ra_dav:version-url
 V 51
-/svn/!svn/ver/195/trunk/samples/sample6_unittest.cc
+/svn/!svn/ver/482/trunk/samples/sample6_unittest.cc
+END
+sample7_unittest.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/512/trunk/samples/sample7_unittest.cc
 END
 sample4.h
 K 25
@@ -75,11 +81,11 @@ svn:wc:ra_dav:version-url
 V 40
 /svn/!svn/ver/40/trunk/samples/sample4.h
 END
-sample7_unittest.cc
+sample8_unittest.cc
 K 25
 svn:wc:ra_dav:version-url
 V 51
-/svn/!svn/ver/386/trunk/samples/sample7_unittest.cc
+/svn/!svn/ver/482/trunk/samples/sample8_unittest.cc
 END
 prime_tables.h
 K 25
@@ -87,23 +93,17 @@ svn:wc:ra_dav:version-url
 V 46
 /svn/!svn/ver/365/trunk/samples/prime_tables.h
 END
-sample8_unittest.cc
-K 25
-svn:wc:ra_dav:version-url
-V 51
-/svn/!svn/ver/386/trunk/samples/sample8_unittest.cc
-END
 sample9_unittest.cc
 K 25
 svn:wc:ra_dav:version-url
 V 51
-/svn/!svn/ver/439/trunk/samples/sample9_unittest.cc
+/svn/!svn/ver/482/trunk/samples/sample9_unittest.cc
 END
 sample10_unittest.cc
 K 25
 svn:wc:ra_dav:version-url
 V 52
-/svn/!svn/ver/359/trunk/samples/sample10_unittest.cc
+/svn/!svn/ver/482/trunk/samples/sample10_unittest.cc
 END
 sample3-inl.h
 K 25

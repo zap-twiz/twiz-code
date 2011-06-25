@@ -33,7 +33,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 #define GTEST_IMPLEMENTATION_ 1  // Required for the next #include.
 #include "src/gtest-internal-inl.h"
@@ -115,7 +115,7 @@ TEST(FooTest, Bar) {
 void Check(bool condition, const char* msg) {
   if (!condition) {
     printf("FAILED: %s\n", msg);
-    abort();
+    testing::internal::posix::Abort();
   }
 }
 

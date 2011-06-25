@@ -100,8 +100,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <gtest/internal/gtest-port.h>
-#include <gtest/internal/gtest-internal.h>
+#include "gtest/internal/gtest-port.h"
+#include "gtest/internal/gtest-internal.h"
 
 namespace testing {
 
@@ -115,16 +115,23 @@ GTEST_API_ void PrintBytesInObjectTo(const unsigned char* obj_bytes,
                                      size_t count,
                                      ::std::ostream* os);
 
-// TypeWithoutFormatter<T, kIsProto>::PrintValue(value, os) is called
+// For selecting which printer to use when a given type has neither <<
+// nor PrintTo().
+enum TypeKind {
+  kProtobuf,              // a protobuf type
+  kConvertibleToInteger,  // a type implicitly convertible to BiggestInt
+                          // (e.g. a named or unnamed enum type)
+  kOtherType              // anything else
+};
+
+// TypeWithoutFormatter<T, kTypeKind>::PrintValue(value, os) is called
 // by the universal printer to print a value of type T when neither
-// operator<< nor PrintTo() is defined for type T.  When T is
-// ProtocolMessage, proto2::Message, or a subclass of those, kIsProto
-// will be true and the short debug string of the protocol message
-// value will be printed; otherwise kIsProto will be false and the
-// bytes in the value will be printed.
-template <typename T, bool kIsProto>
+// operator<< nor PrintTo() is defined for T, where kTypeKind is the
+// "kind" of T as defined by enum TypeKind.
+template <typename T, TypeKind kTypeKind>
 class TypeWithoutFormatter {
  public:
+  // This default version is called when kTypeKind is kOtherType.
   static void PrintValue(const T& value, ::std::ostream* os) {
     PrintBytesInObjectTo(reinterpret_cast<const unsigned char*>(&value),
                          sizeof(value), os);
@@ -137,22 +144,39 @@ class TypeWithoutFormatter {
 const size_t kProtobufOneLinerMaxLength = 50;
 
 template <typename T>
-class TypeWithoutFormatter<T, true> {
+class TypeWithoutFormatter<T, kProtobuf> {
  public:
   static void PrintValue(const T& value, ::std::ostream* os) {
     const ::testing::internal::string short_str = value.ShortDebugString();
     const ::testing::internal::string pretty_str =
         short_str.length() <= kProtobufOneLinerMaxLength ?
         short_str : ("\n" + value.DebugString());
-    ::std::operator<<(*os, "<" + pretty_str + ">");
+    *os << ("<" + pretty_str + ">");
+  }
+};
+
+template <typename T>
+class TypeWithoutFormatter<T, kConvertibleToInteger> {
+ public:
+  // Since T has no << operator or PrintTo() but can be implicitly
+  // converted to BiggestInt, we print it as a BiggestInt.
+  //
+  // Most likely T is an enum type (either named or unnamed), in which
+  // case printing it as an integer is the desired behavior.  In case
+  // T is not an enum, printing it as an integer is the best we can do
+  // given that it has no user-defined printer.
+  static void PrintValue(const T& value, ::std::ostream* os) {
+    const internal::BiggestInt kBigInt = value;
+    *os << kBigInt;
   }
 };
 
 // Prints the given value to the given ostream.  If the value is a
-// protocol message, its short debug string is printed; otherwise the
-// bytes in the value are printed.  This is what
-// UniversalPrinter<T>::Print() does when it knows nothing about type
-// T and T has no << operator.
+// protocol message, its debug string is printed; if it's an enum or
+// of a type implicitly convertible to BiggestInt, it's printed as an
+// integer; otherwise the bytes in the value are printed.  This is
+// what UniversalPrinter<T>::Print() does when it knows nothing about
+// type T and T has neither << operator nor PrintTo().
 //
 // A user can override this behavior for a class type Foo by defining
 // a << operator in the namespace where Foo is defined.
@@ -174,8 +198,10 @@ class TypeWithoutFormatter<T, true> {
 template <typename Char, typename CharTraits, typename T>
 ::std::basic_ostream<Char, CharTraits>& operator<<(
     ::std::basic_ostream<Char, CharTraits>& os, const T& x) {
-  TypeWithoutFormatter<T, ::testing::internal::IsAProtocolMessage<T>::value>::
-      PrintValue(x, &os);
+  TypeWithoutFormatter<T,
+      (internal::IsAProtocolMessage<T>::value ? kProtobuf :
+       internal::ImplicitlyConvertible<const T&, internal::BiggestInt>::value ?
+       kConvertibleToInteger : kOtherType)>::PrintValue(x, &os);
   return os;
 }
 
@@ -282,7 +308,10 @@ void DefaultPrintTo(IsNotContainer /* dummy */,
   } else {
     // C++ doesn't allow casting from a function pointer to any object
     // pointer.
-    if (ImplicitlyConvertible<T*, const void*>::value) {
+    //
+    // IsTrue() silences warnings: "Condition is always true",
+    // "unreachable code".
+    if (IsTrue(ImplicitlyConvertible<T*, const void*>::value)) {
       // T is not a function type.  We just call << to print p,
       // relying on ADL to pick up user-defined << for their pointer
       // types, if any.
@@ -378,22 +407,22 @@ GTEST_API_ void PrintTo(wchar_t wc, ::std::ostream* os);
 // Overloads for C strings.
 GTEST_API_ void PrintTo(const char* s, ::std::ostream* os);
 inline void PrintTo(char* s, ::std::ostream* os) {
-  PrintTo(implicit_cast<const char*>(s), os);
+  PrintTo(ImplicitCast_<const char*>(s), os);
 }
 
 // signed/unsigned char is often used for representing binary data, so
 // we print pointers to it as void* to be safe.
 inline void PrintTo(const signed char* s, ::std::ostream* os) {
-  PrintTo(implicit_cast<const void*>(s), os);
+  PrintTo(ImplicitCast_<const void*>(s), os);
 }
 inline void PrintTo(signed char* s, ::std::ostream* os) {
-  PrintTo(implicit_cast<const void*>(s), os);
+  PrintTo(ImplicitCast_<const void*>(s), os);
 }
 inline void PrintTo(const unsigned char* s, ::std::ostream* os) {
-  PrintTo(implicit_cast<const void*>(s), os);
+  PrintTo(ImplicitCast_<const void*>(s), os);
 }
 inline void PrintTo(unsigned char* s, ::std::ostream* os) {
-  PrintTo(implicit_cast<const void*>(s), os);
+  PrintTo(ImplicitCast_<const void*>(s), os);
 }
 
 // MSVC can be configured to define wchar_t as a typedef of unsigned
@@ -405,7 +434,7 @@ inline void PrintTo(unsigned char* s, ::std::ostream* os) {
 // Overloads for wide C strings
 GTEST_API_ void PrintTo(const wchar_t* s, ::std::ostream* os);
 inline void PrintTo(wchar_t* s, ::std::ostream* os) {
-  PrintTo(implicit_cast<const wchar_t*>(s), os);
+  PrintTo(ImplicitCast_<const wchar_t*>(s), os);
 }
 #endif
 
@@ -552,8 +581,8 @@ class UniversalPrinter {
   // MSVC warns about adding const to a function type, so we want to
   // disable the warning.
 #ifdef _MSC_VER
-#pragma warning(push)          // Saves the current warning state.
-#pragma warning(disable:4180)  // Temporarily disables warning 4180.
+# pragma warning(push)          // Saves the current warning state.
+# pragma warning(disable:4180)  // Temporarily disables warning 4180.
 #endif  // _MSC_VER
 
   // Note: we deliberately don't call this PrintTo(), as that name
@@ -572,7 +601,7 @@ class UniversalPrinter {
   }
 
 #ifdef _MSC_VER
-#pragma warning(pop)           // Restores the warning state.
+# pragma warning(pop)           // Restores the warning state.
 #endif  // _MSC_VER
 };
 
@@ -623,8 +652,8 @@ class UniversalPrinter<T&> {
   // MSVC warns about adding const to a function type, so we want to
   // disable the warning.
 #ifdef _MSC_VER
-#pragma warning(push)          // Saves the current warning state.
-#pragma warning(disable:4180)  // Temporarily disables warning 4180.
+# pragma warning(push)          // Saves the current warning state.
+# pragma warning(disable:4180)  // Temporarily disables warning 4180.
 #endif  // _MSC_VER
 
   static void Print(const T& value, ::std::ostream* os) {
@@ -637,7 +666,7 @@ class UniversalPrinter<T&> {
   }
 
 #ifdef _MSC_VER
-#pragma warning(pop)           // Restores the warning state.
+# pragma warning(pop)           // Restores the warning state.
 #endif  // _MSC_VER
 };
 
@@ -665,7 +694,10 @@ inline void UniversalTersePrint(char* str, ::std::ostream* os) {
 // NUL-terminated string.
 template <typename T>
 void UniversalPrint(const T& value, ::std::ostream* os) {
-  UniversalPrinter<T>::Print(value, os);
+  // A workarond for the bug in VC++ 7.1 that prevents us from instantiating
+  // UniversalPrinter with T directly.
+  typedef T T1;
+  UniversalPrinter<T1>::Print(value, os);
 }
 
 #if GTEST_HAS_TR1_TUPLE
@@ -710,12 +742,26 @@ struct TuplePrefixPrinter<0> {
   template <typename Tuple>
   static void TersePrintPrefixToStrings(const Tuple&, Strings*) {}
 };
+// We have to specialize the entire TuplePrefixPrinter<> class
+// template here, even though the definition of
+// TersePrintPrefixToStrings() is the same as the generic version, as
+// Embarcadero (formerly CodeGear, formerly Borland) C++ doesn't
+// support specializing a method template of a class template.
 template <>
-template <typename Tuple>
-void TuplePrefixPrinter<1>::PrintPrefixTo(const Tuple& t, ::std::ostream* os) {
-  UniversalPrinter<typename ::std::tr1::tuple_element<0, Tuple>::type>::
-      Print(::std::tr1::get<0>(t), os);
-}
+struct TuplePrefixPrinter<1> {
+  template <typename Tuple>
+  static void PrintPrefixTo(const Tuple& t, ::std::ostream* os) {
+    UniversalPrinter<typename ::std::tr1::tuple_element<0, Tuple>::type>::
+        Print(::std::tr1::get<0>(t), os);
+  }
+
+  template <typename Tuple>
+  static void TersePrintPrefixToStrings(const Tuple& t, Strings* strings) {
+    ::std::stringstream ss;
+    UniversalTersePrint(::std::tr1::get<0>(t), &ss);
+    strings->push_back(ss.str());
+  }
+};
 
 // Helper function for printing a tuple.  T must be instantiated with
 // a tuple type.

@@ -1,7 +1,7 @@
 K 25
 svn:wc:ra_dav:version-url
 V 28
-/svn/!svn/ver/390/trunk/msvc
+/svn/!svn/ver/481/trunk/msvc
 END
 gtest-md.sln
 K 25
@@ -25,7 +25,7 @@ gtest-md.vcproj
 K 25
 svn:wc:ra_dav:version-url
 V 44
-/svn/!svn/ver/309/trunk/msvc/gtest-md.vcproj
+/svn/!svn/ver/481/trunk/msvc/gtest-md.vcproj
 END
 gtest_unittest.vcproj
 K 25
@@ -37,7 +37,7 @@ gtest.vcproj
 K 25
 svn:wc:ra_dav:version-url
 V 41
-/svn/!svn/ver/304/trunk/msvc/gtest.vcproj
+/svn/!svn/ver/481/trunk/msvc/gtest.vcproj
 END
 gtest_prod_test-md.vcproj
 K 25
@@ -49,7 +49,7 @@ gtest_main-md.vcproj
 K 25
 svn:wc:ra_dav:version-url
 V 49
-/svn/!svn/ver/309/trunk/msvc/gtest_main-md.vcproj
+/svn/!svn/ver/481/trunk/msvc/gtest_main-md.vcproj
 END
 gtest_prod_test.vcproj
 K 25
@@ -61,5 +61,5 @@ gtest_main.vcproj
 K 25
 svn:wc:ra_dav:version-url
 V 46
-/svn/!svn/ver/304/trunk/msvc/gtest_main.vcproj
+/svn/!svn/ver/481/trunk/msvc/gtest_main.vcproj
 END
