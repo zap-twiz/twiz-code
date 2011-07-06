@@ -1,86 +1,154 @@
 
+#include "base/base.h"
 #include "lexer/token_stream.h"
 #include "lexer/line_counting_stream.h"
 #include "streams/iostream.h"
+#include "streams/buffered_stream.h"
 
 #include <fstream>
 
 #include <iostream>
 #include <vector>
 
-class ParseTree {
-};
+#include "parser/parser_utils.h"
+#include "parser/parse_node.h"
 
-class TreeNode {
-}
+typedef BufferedStream<Token> BufferedTokenStream;
 
-class ErrorLog {
-};
-
-class THDParser {
-};
-
-namespace Parser {
-
-class PinDefinition {
+class ParserInput {
  public:
-  PinDefinition(int pin_count, std::string const & name)
-      : pin_count_(pin_count), name_(name) {}
+  ParserInput(BufferedTokenStream* buffered_stream, TokenStream* token_stream)
+      : buffered_stream_(buffered_stream), inner_stream_(token_stream) {}
 
-  int pin_count() const { return pin_count; }
-  std::string const & name() const { return name_; }
+  BufferedTokenStream* buffered_stream() { return buffered_stream_; }
+  TokenStream* inner_stream() { return inner_stream_; }
+
  private:
- int pin_count_;
- std::string name_;
+  BufferedTokenStream* buffered_stream_;
+  TokenStream* inner_stream_;
+
+  DISALLOW_COPY_AND_ASSIGN(ParserInput);
 };
 
-class ArgumentDefinition {
+class ParseError {
  public:
+  ParseError(Token const & token, std::string const & message)
+      : token_(token), message_(message) {}
+
+  Token const & token() const { return token_; }
+  std::string const & message() const { return message_; }
+
  private:
-  std::vector<PinDefinition> pins_;
+  Token token_;
+  std::string message_;
 };
 
-class PinRange {
-};
-
-class PinCollection {
-};
-
-class ChipBody {
+class ParseErrorCollection {
  public:
- private:
-}
+  typedef std::vector<ParseError> ErrorArray;
 
-class ChipDefinition {
- private:
-  
-}; 
-
-}  // namespace Parse
-
-bool IsTokenIgnored(Token const & token) {
-  return Token::COMMENT == token.type();
-}
-
-bool IsTokenNumeric(Token const & token) {
-  return Token::NUMBER_BINARY == token.type() ||
-      Token::NUMBER_DECIMAL == token.type() ||
-      Token::NUMBER_HEX == token.type();
-}
-
-bool NextToken(TokenStream& input_stream, Token* next_token) {
-  if (input_stream.IsEOS())
-    return false;
-
-  Token token = input_stream.Get();
-  while (IsTokenIgnored(token)) {
-    if (input_stream.IsEOS())
-      break;
-    token = input_stream.Get();
+  void RegisterError(Token const & token, std::string const & message) {
+    parse_errors_.push_back(ParseError(token, message));
   }
 
-  *next_token = token;
-  return input_stream.IsEOS();
+  ErrorArray const & errors() const { return parse_errors_; }
+
+ private:
+  ErrorArray parse_errors_;
+
+  DISALLOW_COPY_AND_ASSIGN(ParseErrorCollection);
+};
+
+bool ConsumeToken(BufferedTokenStream& input_stream, ParseNode* parse_node,
+                  Token::TokenType token_type) {
+  Token token = NextToken(input_stream);
+
+  if (Token::UNKNOWN == token.type())
+    return false;
+
+  if (token_type == token.type()) {
+    parse_node->PushTerminal(token);
+    return true;
+  }
+
+  // correct the stream
+  input_stream.Unget(token);
+  return false;
+}
+
+void UnwindParseNode(BufferedTokenStream* stream, ParseNode const* parse_node) {
+  if (!stream || !parse_node)
+    return;
+
+  // Starting at the last element, unget all of the productions in order
+  class UnwindVisitor : public ParseNode::Visitor {
+   public:
+    UnwindVisitor(BufferedTokenStream* stream) : stream_(stream) {}
+
+    virtual void VisitTerminal(Token const & token, size_t offset) {
+      stream_->Unget(token);
+    }
+    virtual void VisitNonTerminal(ParseNode const * parse_node, size_t offset) {
+      UnwindParseNode(stream_, parse_node);
+    }
+
+   private:
+    BufferedTokenStream* stream_;
+    DISALLOW_COPY_AND_ASSIGN(UnwindVisitor);
+  };
+
+  UnwindVisitor unwind_visitor(stream);
+  parse_node->VisitChildrenRightToLeft(&unwind_visitor);
+}
+
+class AutoParseNodeUnwinder {
+ public:
+  AutoParseNodeUnwinder(BufferedTokenStream* stream, ParseNode* parse_node)
+      : stream_(stream), parse_node_(parse_node) {}
+  ~AutoParseNodeUnwinder() {
+    if (stream_ && parse_node_)
+      UnwindParseNode(stream_, parse_node_);
+  }
+
+  void Release() { stream_ = NULL; parse_node_ = NULL; }
+
+ private:
+  BufferedTokenStream* stream_;
+  ParseNode* parse_node_;
+
+  DISALLOW_COPY_AND_ASSIGN(AutoParseNodeUnwinder);
+};
+
+class AutoTokenConsumer {
+ public:
+  AutoTokenConsumer(BufferedTokenStream* stream) : stream_(stream) {}
+  ~AutoTokenConsumer();
+
+  // Call to prevent restoring of the consumed contents back into the stream.
+  void Release(ParseNode* node) {
+    if (node) {
+      //node->terminals() = consumed_;
+    }
+    stream_ = NULL;
+  }
+
+  Token NextToken() {
+    consumed_.push_back(stream_->Get());
+    return *consumed_.rbegin();
+  }
+
+ private:
+  BufferedTokenStream* stream_;
+  std::vector<Token> consumed_;
+
+  DISALLOW_COPY_AND_ASSIGN(AutoTokenConsumer);
+};
+
+AutoTokenConsumer::~AutoTokenConsumer() {
+  if (stream_) {
+    for (int x = consumed_.size() - 1; x > 0; --x)
+      stream_->Unget(consumed_[x-1]);
+  }
 }
 
 struct PinDefinition {
@@ -88,52 +156,79 @@ struct PinDefinition {
  std::string name_;
 };
 
-bool EvalPinDefinition(TokenStream& input_stream,
-                       PinDefinition* pin_definition) {
-  Token token = input_stream.Get();
+bool EvalPinDefinition(BufferedTokenStream& input_stream,
+                       ParseNode* pin_definition) {
+  AutoTokenConsumer token_consumer(&input_stream);
+  Token token = token_consumer.NextToken();
   if (Token::IDENTIFIER != token.type())
     return false;
 
-  token = input_stream.Get();
-  if (Token::LEFT_SQUARE_BRACE == token.type()) {
+  token = token_consumer.NextToken();
+  if (Token::LEFT_SQUARE_BRACE != token.type()) {
+    token_consumer.Release(pin_definition);
+    pin_definition->set_type(ParseNode::PIN_DEFINITION);
+    return true;
   }
-  
-  token = input_stream.Get();
-  if (IsTokenNumeric(token)) {
-  }
-  
-  token = input_stream.Get();
-  if (Token::RIGHT_SQUARE_BRACE == token.type()) {
-  }
-  
-  return false;
-}
 
-bool EvalArgList(TokenStream& input_stream) {
-  return false;
-}
-
-bool EvalChip(TokenStream& input_stream) {
-  std::vector<Token> consumed;
-  Token token = input_stream.Get();
-  if (Token::CHIP != token.type()) {
+  token = token_consumer.NextToken();
+  if (!IsTokenNumeric(token))
     return false;
-  }
-  consumed.push_back(token);
 
   token = input_stream.Get();
+  if (Token::RIGHT_SQUARE_BRACE != token.type())
+    return false;
+
+  token_consumer.Release(pin_definition);
+  pin_definition->set_type(ParseNode::PIN_DEFINITION);
+
+  return true;
+}
+
+bool EvalArgList(BufferedTokenStream& input_stream,
+                 ParseNode* arg_list) {
+  ParseNode argument;
+  if (!EvalPinDefinition(input_stream, &argument))
+    return false;
+
+  //arg_list->non_terminals().push_back(argument);
+
+  AutoTokenConsumer token_consumer(&input_stream);
+  Token token = token_consumer.NextToken();
+  while (Token::COMMA == token.type()) {
+    if (!EvalPinDefinition(input_stream, &argument))
+      break;
+
+    //arg_list->non_terminals().push_back(argument);
+    token = token_consumer.NextToken();
+  }
+
+  token_consumer.Release(arg_list);
+  arg_list->set_type(ParseNode::ARGUMENT_DEFINITION);
+
+  return true;
+}
+
+// Returns Null on failure
+bool EvalChipDescription(BufferedTokenStream& input_stream,
+                         ParseNode* chip_description) {
+  AutoTokenConsumer token_consumer(&input_stream);
+
+  Token token = token_consumer.NextToken();
+  if (Token::CHIP != token.type())
+    return false;
+
+  token = token_consumer.NextToken();
   if (Token::IDENTIFIER != token.type())  // The chip name
     return false;
-  consumed.push_back(token);
 
-  token = input_stream.Get();
+  token = token_consumer.NextToken();
   if (Token::LEFT_PAREN != token.type())
     return false;
-  consumed.push_back(token);
 
-  // call Eval ArgList
+  //call Eval ArgList
+  //chip_description->
 
-  token = input_stream.Get();
+  token = token_consumer.NextToken();
   if (Token::RIGHT_PAREN != token.type())
     return false;
 

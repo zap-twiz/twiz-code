@@ -12,6 +12,8 @@ class LineCountingStream : public ObservedStream<char> ,
      set_observer(this);
      SetCount(1);  // File lines start at 1!
    }
+
+  size_t CurrentLine() const { return GetCount(); }
 };
 
 #endif  // INCLUDED_LEXER_LINE_COUNTING_STREAM_H_

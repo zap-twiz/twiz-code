@@ -13,6 +13,8 @@ class TokenStream : public Stream<Token> {
   TokenStream(InputStream& input_stream)
     : input_stream_(input_stream) {}
 
+  size_t CurrentLine() const;
+
   // NOT IMPLEMENTED
   virtual size_t GetN(Token* data, size_t count) { return 0; }
 
