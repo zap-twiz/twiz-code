@@ -7,6 +7,7 @@
       'target_name': 'base',
       'type': 'none',
       'sources': [
+		'base.h', 
         'pointer_traits.h',
         'trie.h',
         'trie_inl.h',

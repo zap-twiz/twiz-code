@@ -1,6 +1,7 @@
 #ifndef INCLUDED_STREAMS_IOSTREAM_H_
 #define INCLUDED_STREAMS_IOSTREAM_H_
 
+#include "base/base.h"
 #include "streams/stream.h"
 
 #include <istream>
@@ -24,8 +25,10 @@ class IoStream : public Stream<char> {
   virtual bool IsEOS() const;
 
  private:
-   std::istream* stream_;
-   char next_value_;
+  std::istream* stream_;
+  char next_value_;
+
+  DISALLOW_COPY_AND_ASSIGN(IoStream);
 };
 
 #endif  // INCLUDED_STREAMS_IOSTREAM_H_

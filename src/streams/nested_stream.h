@@ -1,6 +1,7 @@
 #ifndef INCLUDED_STREAMS_NESTED_STREAM_H_
 #define INCLUDED_STREAMS_NESTED_STREAM_H_
 
+#include "base/base.h"
 #include "streams/stream.h"
 
 template <typename T>
@@ -22,8 +23,12 @@ class NestedStream : public Stream<T> {
     return base_stream_.IsEOS();
   }
 
+  BaseStream* GetInnerStream() { return &base_stream_; }
+
  protected:
   BaseStream& base_stream_;
+
+  DISALLOW_COPY_AND_ASSIGN(NestedStream);
 };
 
 #endif  // INCLUDED_STREAMS_NESTED_STREAM_H_

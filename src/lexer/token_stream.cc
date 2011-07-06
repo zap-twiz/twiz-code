@@ -116,6 +116,10 @@ KeyWord TokenConsumer::NextToken(std::string* token,
 
 } // namespace
 
+size_t TokenStream::CurrentLine() const {
+  return input_stream_.CurrentLine();
+}
+
 Token TokenStream::Get() {
   SkipWhiteSpace(input_stream_);
 

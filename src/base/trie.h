@@ -1,5 +1,5 @@
-#ifndef INCLUDED_LEXER_TRIE_H_
-#define INCLUDED_LEXER_TRIE_H_
+#ifndef INCLUDED_BASE_TRIE_H_
+#define INCLUDED_BASE_TRIE_H_
 
 #include "base/trie_node.h"
 
@@ -130,4 +130,4 @@ class TrieMap {
 
 #include "base/trie_inl.h"
 
-#endif  // INCLUDED_LEXER_TRIE_H_
+#endif  // INCLUDED_BASE_TRIE_H_

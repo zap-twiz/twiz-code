@@ -1,9 +1,11 @@
 #ifndef INCLUDED_STREAMS_BUFFERED_STREAM_H_
 #define INCLUDED_STREAMS_BUFFERED_STREAM_H_
 
+#include "base/base.h"
 #include "streams/nested_stream.h"
 
 #include <vector>
+
 
 template <typename T>
 class BufferedStream : public NestedStream<T> {
@@ -35,6 +37,8 @@ class BufferedStream : public NestedStream<T> {
 
  private:
   std::vector<T> peek_buffer_;
+
+  DISALLOW_COPY_AND_ASSIGN(BufferedStream);
 };
 
 #endif  // INCLUDED_STREAMS_BUFFERED_STREAM_H_

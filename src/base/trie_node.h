@@ -1,7 +1,8 @@
-#ifndef INCLUDED_LEXER_TRIE_NODE_H_
-#define INCLUDED_LEXER_TRIE_NODE_H_
+#ifndef INCLUDED_BASE_TRIE_NODE_H_
+#define INCLUDED_BASE_TRIE_NODE_H_
 
 #include "base/pointer_traits.h"
+
 
 // compile with: /EHsc
 #define _DEFINE_DEPRECATED_HASH_CLASSES 0
@@ -87,4 +88,4 @@ void DeleteTrieDescendents(TrieNode<T, V>* root);
 
 #include "base/trie_node_inl.h"
 
-#endif  // INCLUDED_LEXER_TRIE_NODE_H_
+#endif  // INCLUDED_BASE_TRIE_NODE_H_
