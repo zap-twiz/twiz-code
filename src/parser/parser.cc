@@ -76,6 +76,23 @@ bool ConsumeToken(BufferedTokenStream& input_stream, ParseNode* parse_node,
   return false;
 }
 
+typedef bool (*NonTerminalEvaluator)(BufferedTokenStream&, ParseNode*,
+                                     ParseErrorCollection*);
+
+bool ConsumeNonTerminal(BufferedTokenStream& input_stream,
+                        ParseNode* parse_node,
+                        ParseErrorCollection* error_collection,
+                        NonTerminalEvaluator evaluator) {
+  ParseNode* non_terminal = new ParseNode;
+  if (!evaluator(input_stream, non_terminal, error_collection)) {
+    delete non_terminal;
+    return false;
+  }
+
+  parse_node->PushNonTerminal(non_terminal);
+  return true;
+}
+
 void UnwindParseNode(BufferedTokenStream* stream, ParseNode const* parse_node) {
   if (!stream || !parse_node)
     return;
@@ -157,88 +174,93 @@ struct PinDefinition {
 };
 
 bool EvalPinDefinition(BufferedTokenStream& input_stream,
-                       ParseNode* pin_definition) {
-  AutoTokenConsumer token_consumer(&input_stream);
-  Token token = token_consumer.NextToken();
-  if (Token::IDENTIFIER != token.type())
+                       ParseNode* pin_definition,
+                       ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, pin_definition);
+  if (!ConsumeToken(input_stream, pin_definition, Token::IDENTIFIER))
     return false;
 
-  token = token_consumer.NextToken();
-  if (Token::LEFT_SQUARE_BRACE != token.type()) {
-    token_consumer.Release(pin_definition);
-    pin_definition->set_type(ParseNode::PIN_DEFINITION);
+  if (!ConsumeToken(input_stream, pin_definition, Token::LEFT_SQUARE_BRACE)) {
+    pin_definition->set_type(ParseNode::SINGLE_PIN_DEFINITION);
+    auto_unwind.Release();
     return true;
   }
 
-  token = token_consumer.NextToken();
-  if (!IsTokenNumeric(token))
+  if (!ConsumeToken(input_stream, pin_definition, Token::NUMBER_BINARY) &&
+      !ConsumeToken(input_stream, pin_definition, Token::NUMBER_DECIMAL) &&
+      !ConsumeToken(input_stream, pin_definition, Token::NUMBER_HEX))
     return false;
 
-  token = input_stream.Get();
-  if (Token::RIGHT_SQUARE_BRACE != token.type())
+  if (!ConsumeToken(input_stream, pin_definition, Token::RIGHT_SQUARE_BRACE))
     return false;
 
-  token_consumer.Release(pin_definition);
-  pin_definition->set_type(ParseNode::PIN_DEFINITION);
-
+  pin_definition->set_type(ParseNode::ARRAY_PIN_DEFINITION);
+  auto_unwind.Release();
   return true;
 }
 
 bool EvalArgList(BufferedTokenStream& input_stream,
-                 ParseNode* arg_list) {
-  ParseNode argument;
-  if (!EvalPinDefinition(input_stream, &argument))
+                 ParseNode* arg_list,
+                 ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, arg_list);
+
+  if (!ConsumeNonTerminal(input_stream, arg_list, error_collection,
+                          EvalPinDefinition))
     return false;
 
-  //arg_list->non_terminals().push_back(argument);
-
-  AutoTokenConsumer token_consumer(&input_stream);
-  Token token = token_consumer.NextToken();
-  while (Token::COMMA == token.type()) {
-    if (!EvalPinDefinition(input_stream, &argument))
-      break;
-
-    //arg_list->non_terminals().push_back(argument);
-    token = token_consumer.NextToken();
+  while (ConsumeToken(input_stream, arg_list, Token::COMMA)) {
+    if (!ConsumeNonTerminal(input_stream, arg_list, error_collection,
+                            EvalPinDefinition)) {
+      // TODO - record an error here;
+      return false;
+    }
   }
 
-  token_consumer.Release(arg_list);
   arg_list->set_type(ParseNode::ARGUMENT_DEFINITION);
-
+  auto_unwind.Release();
   return true;
 }
 
 // Returns Null on failure
 bool EvalChipDescription(BufferedTokenStream& input_stream,
-                         ParseNode* chip_description) {
-  AutoTokenConsumer token_consumer(&input_stream);
+                         ParseNode* chip_description,
+                         ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, chip_description);
 
-  Token token = token_consumer.NextToken();
-  if (Token::CHIP != token.type())
+  if (!ConsumeToken(input_stream, chip_description, Token::CHIP))
     return false;
 
-  token = token_consumer.NextToken();
-  if (Token::IDENTIFIER != token.type())  // The chip name
+  if (!ConsumeToken(input_stream, chip_description, Token::IDENTIFIER))
     return false;
 
-  token = token_consumer.NextToken();
-  if (Token::LEFT_PAREN != token.type())
+  if (!ConsumeToken(input_stream, chip_description, Token::LEFT_PAREN))
     return false;
 
-  //call Eval ArgList
-  //chip_description->
-
-  token = token_consumer.NextToken();
-  if (Token::RIGHT_PAREN != token.type())
+  if (!ConsumeNonTerminal(input_stream, chip_description, error_collection,
+                          EvalArgList))
     return false;
 
-  token = input_stream.Get();
-  if (Token::RIGHT_ARROW != token.type())
+  if (!ConsumeToken(input_stream, chip_description, Token::RIGHT_PAREN))
     return false;
 
-  token = input_stream.Get();
+  if (!ConsumeToken(input_stream, chip_description, Token::RIGHT_ARROW))
+    return false;
 
-  return false;
+  if (!ConsumeNonTerminal(input_stream, chip_description, error_collection,
+                          EvalPinDefinition))
+    return false;
+
+  if (!ConsumeToken(input_stream, chip_description, Token::LEFT_BRACE))
+    return false;
+
+  // Evaluate body
+
+  if (!ConsumeToken(input_stream, chip_description, Token::RIGHT_BRACE))
+    return false;
+
+  chip_description->set_type(ParseNode::CHIP_DESCRIPTION);
+  auto_unwind.Release();
+  return true;
 }
 
 bool EvalTHD(TokenStream& input_stream) {
