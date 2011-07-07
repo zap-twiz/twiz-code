@@ -6,7 +6,7 @@
   'targets': [
     {
       'target_name': 'parser',
-      'type': 'static_library',
+      'type': 'executable',
       'sources': [
         'parser.cc',
         'parse_node.cc',

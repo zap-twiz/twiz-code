@@ -11,7 +11,7 @@
 class ParseNode {
  public:
   enum ProductionType {
-    CHIP_DESCRIPTION,
+    CHIP_DEFINITION,
     ARGUMENT_DEFINITION,
     SINGLE_PIN_DEFINITION,
     ARRAY_PIN_DEFINITION,
@@ -19,8 +19,9 @@ class ParseNode {
     PIN_ASSIGNMENT,
     PIN_REFERENCE,
     PIN_COLLECTION,
-    CHIP_INSTANCE,
+    CHIP_DECLARATION,
     CHIP_REFERENCE,
+    IMPORT_STATEMENT,
     UNKNOWN
   };
 

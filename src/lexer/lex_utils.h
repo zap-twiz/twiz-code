@@ -40,4 +40,6 @@ bool ReadNumber(BufferedStream<char>& input, std::string* value);
 bool ReadIdentifierTail(BufferedStream<char>& input, std::string* value);
 bool ReadIdentifier(BufferedStream<char>& input, std::string* value);
 
+bool ReadString(BufferedStream<char>& input, std::string* value);
+
 #endif  // INCLUDED_LEXER_LEX_UTILS_H_

@@ -1,12 +1,13 @@
-..
-a[2..3]
+//..
+//a[2..3]
 // Comment type 1 
 /* Comment type 2 */
 
-// import "chip.thd"
+import "chip.thd"
 
 chip not(a) -> out {
-  out<-nand(a, HIGH)
+  chip unused;
+  out<-nand(a, HIGH);
 }
 
 chip not2(a[2]) -> out[2] {
