@@ -15,21 +15,7 @@
 
 typedef BufferedStream<Token> BufferedTokenStream;
 
-class ParserInput {
- public:
-  ParserInput(BufferedTokenStream* buffered_stream, TokenStream* token_stream)
-      : buffered_stream_(buffered_stream), inner_stream_(token_stream) {}
-
-  BufferedTokenStream* buffered_stream() { return buffered_stream_; }
-  TokenStream* inner_stream() { return inner_stream_; }
-
- private:
-  BufferedTokenStream* buffered_stream_;
-  TokenStream* inner_stream_;
-
-  DISALLOW_COPY_AND_ASSIGN(ParserInput);
-};
-
+// Todo:  Fix the error reporting structure
 class ParseError {
  public:
   ParseError(Token const & token, std::string const & message)
@@ -47,8 +33,18 @@ class ParseErrorCollection {
  public:
   typedef std::vector<ParseError> ErrorArray;
 
+  ParseErrorCollection() {}
+
   void RegisterError(Token const & token, std::string const & message) {
     parse_errors_.push_back(ParseError(token, message));
+  }
+
+  void RegisterErrorCollection(ParseErrorCollection const & error_collection) {
+    // add all of the errors in error collection to the local error set
+    ErrorArray::const_iterator error_iter(error_collection.errors().begin()),
+        error_end(error_collection.errors().end());
+    for (; error_iter != error_end; ++error_iter)
+      RegisterError(error_iter->token(), error_iter->message());
   }
 
   ErrorArray const & errors() const { return parse_errors_; }
@@ -136,43 +132,6 @@ class AutoParseNodeUnwinder {
   DISALLOW_COPY_AND_ASSIGN(AutoParseNodeUnwinder);
 };
 
-class AutoTokenConsumer {
- public:
-  AutoTokenConsumer(BufferedTokenStream* stream) : stream_(stream) {}
-  ~AutoTokenConsumer();
-
-  // Call to prevent restoring of the consumed contents back into the stream.
-  void Release(ParseNode* node) {
-    if (node) {
-      //node->terminals() = consumed_;
-    }
-    stream_ = NULL;
-  }
-
-  Token NextToken() {
-    consumed_.push_back(stream_->Get());
-    return *consumed_.rbegin();
-  }
-
- private:
-  BufferedTokenStream* stream_;
-  std::vector<Token> consumed_;
-
-  DISALLOW_COPY_AND_ASSIGN(AutoTokenConsumer);
-};
-
-AutoTokenConsumer::~AutoTokenConsumer() {
-  if (stream_) {
-    for (int x = consumed_.size() - 1; x > 0; --x)
-      stream_->Unget(consumed_[x-1]);
-  }
-}
-
-struct PinDefinition {
- int pin_count_;
- std::string name_;
-};
-
 bool EvalPinDefinition(BufferedTokenStream& input_stream,
                        ParseNode* pin_definition,
                        ParseErrorCollection* error_collection) {
@@ -221,10 +180,61 @@ bool EvalArgList(BufferedTokenStream& input_stream,
   return true;
 }
 
-// Returns Null on failure
-bool EvalChipDescription(BufferedTokenStream& input_stream,
-                         ParseNode* chip_description,
+bool EvalWireDeclaration(BufferedTokenStream& input_stream,
+                         ParseNode* wire_declaration,
                          ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, chip_declaration);
+
+  if (!ConsumeToken(input_stream, wire_declaration, Token::WIRE))
+    return false;
+
+  // Only allow for a single instance?
+  if (!ConsumeToken(input_stream, wire_declaration, Token::IDENTIFIER))
+    return false;
+
+  if (!ConsumeToken(input_stream, wire_declaration, Token::SEMI_COLON))
+    return false;
+
+  chip_declaration->set_type(ParseNode::WIRE_DECLARATION);
+  auto_unwind.Release();
+  return true;
+}
+
+bool EvalChipDeclaration(BufferedTokenStream& input_stream,
+                         ParseNode* chip_declaration,
+                         ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, chip_declaration);
+
+  if (!ConsumeToken(input_stream, chip_declaration, Token::CHIP))
+    return false;
+
+  // Only allow for a single instance?
+  if (!ConsumeToken(input_stream, chip_declaration, Token::IDENTIFIER))
+    return false;
+
+  if (!ConsumeToken(input_stream, chip_declaration, Token::SEMI_COLON))
+    return false;
+
+  chip_declaration->set_type(ParseNode::CHIP_DECLARATION);
+  auto_unwind.Release();
+  return true;
+}
+
+bool EvalChipBody(BufferedTokenStream& input_stream,
+                  ParseNode* chip_body,
+                  ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, chip_body);
+
+  
+
+  auto_unwind.Release();
+  return true;
+}
+
+// Returns Null on failure
+bool EvalChipDefinition(BufferedTokenStream& input_stream,
+                        ParseNode* chip_description,
+                        ParseErrorCollection* error_collection) {
   AutoParseNodeUnwinder auto_unwind(&input_stream, chip_description);
 
   if (!ConsumeToken(input_stream, chip_description, Token::CHIP))
@@ -258,12 +268,33 @@ bool EvalChipDescription(BufferedTokenStream& input_stream,
   if (!ConsumeToken(input_stream, chip_description, Token::RIGHT_BRACE))
     return false;
 
-  chip_description->set_type(ParseNode::CHIP_DESCRIPTION);
+  chip_description->set_type(ParseNode::CHIP_DEFINITION);
   auto_unwind.Release();
   return true;
 }
 
-bool EvalTHD(TokenStream& input_stream) {
+bool EvalImportClause(BufferedTokenStream& input_stream,
+                      ParseNode* import,
+                      ParseErrorCollection *error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, import);
+
+  if (!ConsumeToken(input_stream, import, Token::IMPORT))
+    return false;
+
+  if (!ConsumeToken(input_stream, import, Token::STRING))
+    return false;
+
+  //Note:  A newline is NOT required!
+  import->set_type(ParseNode::IMPORT_STATEMENT);
+  auto_unwind.Release();
+  return true;
+}
+
+bool EvalTHDModule(BufferedTokenStream& input_stream,
+                   ParseNode* root,
+                   ParseErrorCollection *error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, root);
+
   return false;
 }
 
@@ -281,11 +312,19 @@ int main(int argc, char* argv[]) {
 
   TokenStream token_stream(line_count);
 
+  BufferedTokenStream buffered_stream(token_stream);
+
+  ParseNode* chip_node = new ParseNode;
+  ParseErrorCollection errors;
+  EvalChipDefinition(buffered_stream, chip_node, &errors);
+
+#if 0
   while (!token_stream.IsEOS()) {
     Token token = token_stream.Get();
     std::cout << "Token:= " << Token::kTokenTypeNames[token.type()] << ": "
         << token.value() << ": Line :" << token.line() << std::endl;
   }
+#endif
 
   return 0;
 }

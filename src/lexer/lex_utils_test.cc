@@ -220,4 +220,18 @@ TEST_F(LexUtilsTest, ReadIdentifier) {
   EXPECT_STREQ("ident", ident.c_str());
 }
 
+TEST_F(LexUtilsTest, ReadString) {
+  const std::string value("\"string1\"\"not_a_string");
+  std::stringstream string_stream(value);
+  IoStream io_stream(&string_stream);
+  BufferedStream<char> buffered_stream(io_stream);
+
+  std::string string;
+  EXPECT_TRUE(ReadString(buffered_stream, &string));
+  EXPECT_STREQ("string1", string.c_str());
+
+  EXPECT_FALSE(ReadString(buffered_stream, &string));
+  EXPECT_TRUE('"' == buffered_stream.Get());
+}
+
 }  // namespace

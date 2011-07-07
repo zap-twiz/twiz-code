@@ -241,4 +241,27 @@ TEST_F(TokenStreamTest, InvalidNumbers) {
   EXPECT_TRUE(token.value() == "b2");
 }
 
+TEST_F(TokenStreamTest, Strings) {
+  StreamSet streams;
+  BuildStream("\"string1\" \"string2\" non_string_tail\"", &streams);
+  TokenStream token_stream(*streams.buffered_stream_);
+  EXPECT_FALSE(token_stream.IsEOS());
+
+  Token token = token_stream.Get();
+  EXPECT_TRUE(Token::STRING == token.type());
+  EXPECT_STREQ("string1", token.value().c_str());
+
+  token = token_stream.Get();
+  EXPECT_TRUE(Token::STRING == token.type());
+  EXPECT_STREQ("string2", token.value().c_str());
+
+  token = token_stream.Get();
+  EXPECT_TRUE(Token::IDENTIFIER == token.type());
+  EXPECT_STREQ("non_string_tail", token.value().c_str());
+
+  token = token_stream.Get();
+  EXPECT_TRUE(Token::UNKNOWN == token.type());
+  EXPECT_STREQ("\"", token.value().c_str());
+}
+
 }  // namespace

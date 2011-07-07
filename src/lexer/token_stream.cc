@@ -32,6 +32,7 @@ typedef enum KeyWord {
   CPP_COMMENT_PREFIX,
   HEX_PREFIX,
   BINARY_PREFIX,
+  DOUBLE_QUOTE,
   UNKNOWN,
   NUM_KEY_WORDS
 };
@@ -61,6 +62,7 @@ const char* kKeyWords[] = {
   "/*",
   "0x",
   "0b",
+  "\""
 };
 
 class TokenConsumer {
@@ -169,20 +171,19 @@ Token TokenStream::Get() {
     case ::HEX_PREFIX:
       input_stream_.Unget(kKeyWords[::HEX_PREFIX][1]);
       input_stream_.Unget(kKeyWords[::HEX_PREFIX][0]);
-      if (ReadHexNumber(input_stream_, &token)) {
+      if (ReadHexNumber(input_stream_, &token))
         token_type = Token::NUMBER_HEX;
-      } else {
-        scan_identifier = true;
-      }
       break;
     case ::BINARY_PREFIX:
       input_stream_.Unget(kKeyWords[::BINARY_PREFIX][1]);
       input_stream_.Unget(kKeyWords[::BINARY_PREFIX][0]);
-      if (ReadBinaryNumber(input_stream_, &token)) {
+      if (ReadBinaryNumber(input_stream_, &token))
         token_type = Token::NUMBER_BINARY;
-      } else {
-        scan_identifier = true;
-      }
+      break;
+    case ::DOUBLE_QUOTE:
+      input_stream_.Unget(kKeyWords[::DOUBLE_QUOTE][0]);
+      if (ReadString(input_stream_, &token))
+        token_type = Token::STRING;
       break;
     case ::UNKNOWN:
       if (ReadDecimalNumber(input_stream_, &token)) {

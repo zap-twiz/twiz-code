@@ -4,6 +4,11 @@
 #include "streams/buffered_stream.h"
 #include "streams/stream.h"
 
+
+namespace {
+const char kCaseOffset = 'A' - 'a';
+}
+
 bool IsWhiteSpace(char value) {
   switch(value) {
     case ' ':
@@ -22,10 +27,6 @@ bool IsLowerCase(char value) {
 
 bool IsUpperCase(char value) {
   return value >= 'A' && value <= 'Z';
-}
-
-namespace {
-const char kCaseOffset = 'A' - 'a';
 }
 
 char ToLower(char value) {
@@ -293,4 +294,38 @@ bool ReadIdentifier(BufferedStream<char>& input, std::string* value) {
   }
 
   return false;
+}
+
+bool ReadString(BufferedStream<char>& input, std::string* value) {
+  value->clear();
+
+  if (input.IsEOS())
+    return false;
+
+  char read = input.Get();
+  if ('"' != read) {
+    input.Unget(read);
+    return false;
+  }
+
+  bool string_read = false;
+  while (!input.IsEOS()) {
+    read = input.Get();
+    if ('"' == read) {
+      string_read = true;
+      break;
+    }
+    *value += read;
+  }
+
+  if (!string_read) {
+    int offset = value->size() - 1;
+    for (; offset >= 0; --offset)
+      input.Unget((*value)[offset]);
+    value->clear();
+
+    input.Unget('"');
+  }
+
+  return string_read;
 }
