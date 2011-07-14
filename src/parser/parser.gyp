@@ -9,6 +9,8 @@
       'type': 'executable',
       'sources': [
         'parser.cc',
+        'parse_error.h',
+        'parse_error_collection.h',
         'parse_node.cc',
         'parse_node.h',
         'parser_utils.cc',
