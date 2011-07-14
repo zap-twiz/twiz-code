@@ -10,24 +10,12 @@
 #include <iostream>
 #include <vector>
 
-#include "parser/parser_utils.h"
+#include "parser/parse_error.h"
 #include "parser/parse_node.h"
+#include "parser/parser_utils.h"
+
 
 typedef BufferedStream<Token> BufferedTokenStream;
-
-// Todo:  Fix the error reporting structure
-class ParseError {
- public:
-  ParseError(Token const & token, std::string const & message)
-      : token_(token), message_(message) {}
-
-  Token const & token() const { return token_; }
-  std::string const & message() const { return message_; }
-
- private:
-  Token token_;
-  std::string message_;
-};
 
 class ParseErrorCollection {
  public:
@@ -183,19 +171,19 @@ bool EvalArgList(BufferedTokenStream& input_stream,
 bool EvalWireDeclaration(BufferedTokenStream& input_stream,
                          ParseNode* wire_declaration,
                          ParseErrorCollection* error_collection) {
-  AutoParseNodeUnwinder auto_unwind(&input_stream, chip_declaration);
+  AutoParseNodeUnwinder auto_unwind(&input_stream, wire_declaration);
 
   if (!ConsumeToken(input_stream, wire_declaration, Token::WIRE))
     return false;
 
-  // Only allow for a single instance?
-  if (!ConsumeToken(input_stream, wire_declaration, Token::IDENTIFIER))
+  if (!ConsumeNonTerminal(input_stream, wire_declaration, error_collection,
+                          EvalPinDefinition))
     return false;
 
   if (!ConsumeToken(input_stream, wire_declaration, Token::SEMI_COLON))
     return false;
 
-  chip_declaration->set_type(ParseNode::WIRE_DECLARATION);
+  wire_declaration->set_type(ParseNode::WIRE_DECLARATION);
   auto_unwind.Release();
   return true;
 }
@@ -220,15 +208,137 @@ bool EvalChipDeclaration(BufferedTokenStream& input_stream,
   return true;
 }
 
+bool EvalNumberRange(BufferedTokenStream& input_stream,
+                     ParseNode* range,
+                     ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, range);
+
+  // Number ranges only allow decimal numbers
+  if (!ConsumeToken(input_stream, range, Token::NUMBER_DECIMAL))
+    return false;
+
+  if (!ConsumeToken(input_stream, range, Token::DOT_DOT))
+    return false;
+
+  if (!ConsumeToken(input_stream, range, Token::NUMBER_DECIMAL))
+    return false;
+
+  range->set_type(ParseNode::NUMBER_RANGE);
+  auto_unwind.Release();
+  return true;
+}
+
+bool EvalNumberOrNumberRange(BufferedTokenStream& input_stream,
+                             ParseNode* number_or_range,
+                             ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, number_or_range);
+
+  ParseErrorCollection local_errors;
+  if (ConsumeNonTerminal(input_stream, number_or_range, &local_errors,
+                         EvalNumberRange)) {
+    auto_unwind.Release();
+    return true;
+  }
+
+  if (ConsumeToken(input_stream, number_or_range, Token::NUMBER_DECIMAL) ||
+      ConsumeToken(input_stream, number_or_range, Token::NUMBER_HEX) ||
+      ConsumeToken(input_stream, number_or_range, Token::NUMBER_BINARY)) {
+    number_or_range->set_type(ParseNode::NUMBER);
+    auto_unwind.Release();
+    return true;
+  }
+  
+  return false;
+}
+
+bool EvalNumberCollection(BufferedTokenStream& input_stream,
+                          ParseNode* number_collection,
+                          ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, number_collection);
+
+  if (!ConsumeNonTerminal(input_stream, number_collection, error_collection,
+                          EvalNumberOrNumberRange))
+    return false;
+
+  while(ConsumeToken(input_stream, number_collection, Token::COMMA)){
+    if (!ConsumeNonTerminal(input_stream, number_collection, error_collection,
+                            EvalNumberOrNumberRange))
+        return false;
+  }
+
+  number_collection->set_type(ParseNode::NUMBER_COLLECTION);
+  auto_unwind.Release();
+  return true;
+}
+
+bool EvalAssignmentLValue(BufferedTokenStream& input_stream,
+                          ParseNode* l_value,
+                          ParseErrorCollection* error_collection) {
+  return false;
+}
+
+bool EvalAssignmentRValue(BufferedTokenStream& input_stream,
+                          ParseNode* r_value,
+                          ParseErrorCollection* error_collection) {
+  return false;
+}
+
+bool EvalLeftPinAssignStatement(BufferedTokenStream& input_stream,
+                                ParseNode* statement,
+                                ParseErrorCollection* error_collection) {
+  return false;
+}
+
+bool EvalPinAssignStatement(BufferedTokenStream& input_stream,
+                            ParseNode* statement,
+                            ParseErrorCollection* error_collection) {
+  AutoParseNodeUnwinder auto_unwind(&input_stream, statement);
+
+  ParseErrorCollection local_errors;
+  if (ConsumeNonTerminal(input_stream, statement, &local_errors,
+                         EvalLeftPinAssignStatement)) {
+    // assign a statement type
+    auto_unwind.Release();
+    return true;
+  }
+
+#if 0
+  if (ConsumeNonTerminal(input_stream, statement, error_collection,
+                         EvalRightPinAssignStatement)) {
+    // assign a statement type
+    auto_unwind.Release();
+    return true;
+  }
+#endif
+
+  error_collection->RegisterErrorCollection(local_errors);
+  return false;
+}
+
 bool EvalChipBody(BufferedTokenStream& input_stream,
                   ParseNode* chip_body,
                   ParseErrorCollection* error_collection) {
   AutoParseNodeUnwinder auto_unwind(&input_stream, chip_body);
 
-  
+  bool valid_body = false;
+  while (true) {
+    ParseErrorCollection local_errors;
+    if (ConsumeNonTerminal(input_stream, chip_body, &local_errors,
+                          EvalChipDeclaration))
+      continue;
+
+    if (ConsumeNonTerminal(input_stream, chip_body, &local_errors,
+                           EvalWireDeclaration))
+      continue;
+
+    if (Token::RIGHT_BRACE == input_stream.Peek().type()) {
+      valid_body = true;
+      break;
+    }
+  }
 
   auto_unwind.Release();
-  return true;
+  return valid_body;
 }
 
 // Returns Null on failure
@@ -284,7 +394,9 @@ bool EvalImportClause(BufferedTokenStream& input_stream,
   if (!ConsumeToken(input_stream, import, Token::STRING))
     return false;
 
-  //Note:  A newline is NOT required!
+  if (!ConsumeToken(input_stream, import, Token::SEMI_COLON))
+    return false;
+
   import->set_type(ParseNode::IMPORT_STATEMENT);
   auto_unwind.Release();
   return true;

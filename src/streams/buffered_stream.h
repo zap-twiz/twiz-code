@@ -22,6 +22,12 @@ class BufferedStream : public NestedStream<T> {
     }
   }
 
+  Type Peek() {
+    Type value = Get();
+    Unget(value);
+    return value;
+  }
+
   virtual void Unget(const Type& value) {
     peek_buffer_.push_back(value);
   }

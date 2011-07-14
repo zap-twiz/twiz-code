@@ -3,7 +3,7 @@
 // Comment type 1 
 /* Comment type 2 */
 
-import "chip.thd"
+import "chip.thd";
 
 chip not(a) -> out {
   chip unused;

@@ -54,4 +54,19 @@ TEST_F(BufferedStreamTest, Unget) {
   EXPECT_TRUE(buffered_stream.IsEOS());
 }
 
+TEST_F(BufferedStreamTest, Peek) {
+  BufferedStreamType buffered_stream(inner_stream_);
+  EXPECT_FALSE(buffered_stream.IsEOS());
+
+  EXPECT_TRUE('T' == buffered_stream.Peek());
+  EXPECT_TRUE('T' == buffered_stream.Peek());
+
+  char const * string_iter = &kTestString[0];
+  while (!buffered_stream.IsEOS()) {
+    EXPECT_TRUE(*string_iter == buffered_stream.Peek());
+    EXPECT_TRUE(*string_iter == buffered_stream.Get());
+    ++string_iter;
+  }
+}
+
 }  // namespace
