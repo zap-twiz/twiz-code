@@ -11,37 +11,12 @@
 #include <vector>
 
 #include "parser/parse_error.h"
+#include "parser/parse_error_collection.h"
 #include "parser/parse_node.h"
 #include "parser/parser_utils.h"
 
 
 typedef BufferedStream<Token> BufferedTokenStream;
-
-class ParseErrorCollection {
- public:
-  typedef std::vector<ParseError> ErrorArray;
-
-  ParseErrorCollection() {}
-
-  void RegisterError(Token const & token, std::string const & message) {
-    parse_errors_.push_back(ParseError(token, message));
-  }
-
-  void RegisterErrorCollection(ParseErrorCollection const & error_collection) {
-    // add all of the errors in error collection to the local error set
-    ErrorArray::const_iterator error_iter(error_collection.errors().begin()),
-        error_end(error_collection.errors().end());
-    for (; error_iter != error_end; ++error_iter)
-      RegisterError(error_iter->token(), error_iter->message());
-  }
-
-  ErrorArray const & errors() const { return parse_errors_; }
-
- private:
-  ErrorArray parse_errors_;
-
-  DISALLOW_COPY_AND_ASSIGN(ParseErrorCollection);
-};
 
 bool ConsumeToken(BufferedTokenStream& input_stream, ParseNode* parse_node,
                   Token::TokenType token_type) {
@@ -60,21 +35,33 @@ bool ConsumeToken(BufferedTokenStream& input_stream, ParseNode* parse_node,
   return false;
 }
 
-typedef bool (*NonTerminalEvaluator)(BufferedTokenStream&, ParseNode*,
-                                     ParseErrorCollection*);
+typedef ParseNode* (*NonTerminalEvaluator)(
+    BufferedTokenStream&, ParseErrorCollection*);
 
-bool ConsumeNonTerminal(BufferedTokenStream& input_stream,
-                        ParseNode* parse_node,
-                        ParseErrorCollection* error_collection,
-                        NonTerminalEvaluator evaluator) {
-  ParseNode* non_terminal = new ParseNode;
-  if (!evaluator(input_stream, non_terminal, error_collection)) {
-    delete non_terminal;
-    return false;
+ParseNode* ConsumeNonTerminal(
+    BufferedTokenStream& input_stream, ParseErrorCollection* error_collection,
+    std::vector<NonTerminalEvaluator> const & evaluators) {
+
+  ParseNode* parse_node = NULL;
+
+  std::vector<NonTerminalEvaluator>::const_iterator iter(evaluators.begin()),
+      end(evaluators.end());
+  for (; iter != end; ++iter) {
+    (*iter)(input_stream, error_collection
   }
+  return NULL;
+}
 
-  parse_node->PushNonTerminal(non_terminal);
-  return true;
+ParseNode* ConsumeNonTerminal(BufferedTokenStream& input_stream,
+                              ParseErrorCollection* error_collection,
+                              NonTerminalEvaluator evaluator) {
+  ParseNode* non_terminal = new ParseNode;
+  ParseNode::ProductionType production_type =
+      evaluator(input_stream, non_terminal, error_collection);
+  if (ParseNode::UNKNOWN == production_type)
+    delete non_terminal;
+
+  return non_termainal;
 }
 
 void UnwindParseNode(BufferedTokenStream* stream, ParseNode const* parse_node) {
