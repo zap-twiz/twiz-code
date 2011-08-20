@@ -11,6 +11,16 @@
 class ParseNode {
  public:
   enum ProductionType {
+    THD_MODULE,
+    IDENTIFIER_DEFINITION,
+    IDENTIFIER_DEFINITION_LIST,
+    IDENTIFIER_REFERENCE,
+    CHIP_INSTANCE,
+    WIRE_INSTANCE,
+    LEFT_ASSIGN_STATEMENT,
+    
+    
+    // OLD DEFINITIONS
     CHIP_DEFINITION,
     ARGUMENT_DEFINITION,
     SINGLE_PIN_DEFINITION,
@@ -40,8 +50,7 @@ class ParseNode {
   }
 
   void PushNonTerminal(ParseNode * parse_node) {
-    non_terminals_.push_back(
-        std::make_pair(parse_node, size()));
+    non_terminals_.push_back(std::make_pair(parse_node, size()));
   }
 
   size_t size() const { return terminals_.size() + non_terminals_.size(); }
