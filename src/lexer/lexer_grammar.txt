@@ -1,0 +1,38 @@
+// Just for reference
+
+<VHDL> := <declaration_list> $ | $
+
+<declaration_list> := <declaration_list> <declaration> | <declaration>
+
+<declaration> := <include> | <chip_definition>
+
+<chip_definition> := chip <identifier> <arguments> -> <arguments> <chip_body>
+
+<chip_body> := { <statement_list> }
+
+<statement_list> := <statement_list> <statement> | <statement>
+
+<statement> := <instantiation> | <expression>
+
+<instantiation> := <type> <complete_name> ;
+<type> := <identifier>
+<complete_name> := <identifier> | <identifier> [ <number> ]
+
+<expression> := <lvalue> <op> <rvalue> ;
+
+<lvalue> := <reference>
+
+<op> := <- | ->
+
+<reference> := <full_identifier> | <identifier> <range>
+
+<full_identifier> := <identifier> . <identifier>
+
+<range> := [ <span> ] | [ <number_list> ]
+
+<span> := <number> .. <number>
+<number_list> := <number_list> , <number> | <number>
+
+<rvalue> := <reference_list>
+
+<reference_list> := <reference> , 
