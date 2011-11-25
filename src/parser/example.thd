@@ -10,6 +10,7 @@ chip not(a) -> out {
   out<-nand(a, HIGH);
 }
 
+/*
 chip not2(a[2]) -> out[2] {
   out<-[ not(a[0]), not(a[1]) ];
 }
@@ -76,7 +77,7 @@ chip xor8(a[8], b[8]) -> out[8] {
 
 chip or8(a[8], b[8]) -> out[4] {
   out<-[ or4(a[0..3], b[0..3]),
-         or4(a[4..7], b[4..7]) ];  
+         or4(a[4..7], b[4..7]) ];
 }
 
 chip select(sel, in1, in2)-> out {
@@ -137,6 +138,7 @@ chip demux8(sel[3], in) -> out[8] {
   out<-[ select4(sel[2], sel0, [LOW, LOW, LOW, LOW]),
          select4(sel[2], [LOW, LOW, LOW, LOW], sel0) ];  
 }
+*/
 
 
 

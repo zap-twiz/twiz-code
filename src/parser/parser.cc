@@ -1,4 +1,6 @@
 
+#include "parser/parser.h"
+
 #include "base/base.h"
 #include "lexer/token_stream.h"
 #include "lexer/line_counting_stream.h"
@@ -16,132 +18,7 @@
 #include "parser/parse_node.h"
 #include "parser/parser_utils.h"
 
-
-typedef BufferedStream<Token> BufferedTokenStream;
-
-void UnwindParseNode(BufferedTokenStream* stream, ParseNode const* parse_node) {
-  if (!stream || !parse_node)
-    return;
-
-  // Starting at the last element, unget all of the productions in order
-  class UnwindVisitor : public ParseNode::Visitor {
-   public:
-    explicit UnwindVisitor(BufferedTokenStream* stream) : stream_(stream) {}
-
-    virtual void VisitTerminal(Token const & token, size_t offset) {
-      stream_->Unget(token);
-    }
-    virtual void VisitNonTerminal(ParseNode const * parse_node, size_t offset) {
-      UnwindParseNode(stream_, parse_node);
-    }
-
-   private:
-    BufferedTokenStream* stream_;
-    DISALLOW_COPY_AND_ASSIGN(UnwindVisitor);
-  };
-
-  UnwindVisitor unwind_visitor(stream);
-  parse_node->VisitChildrenRightToLeft(&unwind_visitor);
-}
-
-class AutoParseNodeUnwinder {
- public:
-  AutoParseNodeUnwinder(BufferedTokenStream* stream, ParseNode* parse_node)
-      : stream_(stream), parse_node_(parse_node) {}
-  ~AutoParseNodeUnwinder() {
-    if (stream_ && parse_node_)
-      UnwindParseNode(stream_, parse_node_);
-  }
-
-  void Release() { stream_ = NULL; parse_node_ = NULL; }
-
- private:
-  BufferedTokenStream* stream_;
-  ParseNode* parse_node_;
-
-  DISALLOW_COPY_AND_ASSIGN(AutoParseNodeUnwinder);
-};
-
-// Returns true if the token was matched, false otherwise
-bool ConsumeToken(BufferedTokenStream& input_stream, ParseNode* parse_node,
-                  Token::TokenType token_type) {
-  Token token = NextToken(input_stream);
-
-  if (Token::UNKNOWN == token.type())
-    return false;
-
-  if (token_type == token.type()) {
-    parse_node->PushTerminal(token);
-    return true;
-  }
-
-  // Correct the stream.
-  input_stream.Unget(token);
-  return false;
-}
-
-bool ConsumeToken(BufferedTokenStream& input_stream, ParseNode* parse_node,
-                  Token::TokenType* token_types) {
-  Token token = NextToken(input_stream);
-
-  if (Token::UNKNOWN == token.type())
-    return false;
-
-  for (Token::TokenType* token_type = token_types; *token_type; ++token_type) {
-    if (token.type() == *token_type) {
-      parse_node->PushTerminal(token);
-      return true;
-    }
-  }
-
-  // Correct the stream.
-  input_stream.Unget(token);
-  return false;
-}
-
-typedef ParseNode* (*NonTerminalEvaluator)(
-    BufferedTokenStream&, ParseErrorCollection*);
-
-bool ConsumeNonTerminal(BufferedTokenStream& input_stream,
-                        ParseNode* parent_node,
-                        ParseErrorCollection* error_collection,
-                        NonTerminalEvaluator evaluator) {
-  ParseNode* result = evaluator(input_stream, error_collection);
-  if (result) {
-    parent_node->PushNonTerminal(result);
-    return true;
-  }
-  return false;
-}
-
-ParseNode* ConsumeNonTerminal(BufferedTokenStream& input_stream,
-                              ParseErrorCollection* error_collection,
-                              NonTerminalEvaluator* evaluators) {
-  ParseErrorCollection local_collection;
-  ParseNode* node = NULL;
-  for (NonTerminalEvaluator* evaluator = evaluators; *evaluator; ++evaluator) {
-    if (node = (*evaluator)(input_stream, &local_collection)) {
-      return node;
-    }
-  }
-
-  // None of the evaluators matched, so return all of the errors.
-  error_collection->RegisterErrorCollection(local_collection);
-  return NULL;
-}
-
-bool ConsumeNonTerminal(BufferedTokenStream& input_stream,
-                        ParseNode* parent_node,
-                        ParseErrorCollection* error_collection,
-                        NonTerminalEvaluator* evaluators) {
-  ParseNode* result = ConsumeNonTerminal(input_stream, error_collection,
-                                         evaluators);
-  if (result) {
-    parent_node->PushNonTerminal(result);
-    return true;
-  }
-  return false;
-}
+namespace {
 
 class ParsingContext {
  public:
@@ -155,6 +32,8 @@ class ParsingContext {
   ~ParsingContext() {
     if (!node_)
       unwinder_.Release();
+
+    unwinder_.Unwind();
 
     delete node_;
   }
@@ -187,100 +66,37 @@ class ParsingContext {
   AutoParseNodeUnwinder unwinder_;
 };
 
-#if 0
-class ParsingContext {
- public:
-  ParsingContext(BufferedTokenStream& input_stream)
-      : input_stream_(input_stream),
-        root_(NULL),
-        error_collection_(new ParseErrorCollection) {
-  }
+// HIGH
+// LOW
+// TRUE
+// FALSE
+ParseNode* EvalImmediateValue(BufferedTokenStream& input_stream,
+                              ParseErrorCollection* error_collection) {
+  ParsingContext context(input_stream, error_collection);
 
-  BufferedTokenStream& input_stream() { return input_stream_; }
-  ParseNode* root() { return root_; }
-  ParseErrorCollection* error_collection() { return error_collection_; }
+  static Token::TokenType immediate_tokens[] = {
+      Token::HIGH,
+      Token::LOW,
+      Token::TRUE,
+      Token::FALSE,
+      Token::UNKNOWN
+    };
 
-  ParseNode* EvalPinDefinition() {
-    std::auto_ptr<ParseNode> pin_definition(new ParseNode);
-    AutoParseNodeUnwinder auto_unwind(input_stream(), pin_definition.get());
-    if (!ConsumeToken(input_stream, pin_definition.get(), Token::IDENTIFIER)) {
-      error_collection
-      return NULL;
-    }
+  if (!context.ConsumeToken(immediate_tokens))
+    return NULL;
 
-    if (!ConsumeToken(input_stream, pin_definition.get(), Token::LEFT_SQUARE_BRACE)) {
-      pin_definition->set_type(ParseNode::SINGLE_PIN_DEFINITION);
-      auto_unwind.Release();
-      return pin_definition.release();
-    }
-
-    if (!ConsumeToken(input_stream, pin_definition.get(), Token::NUMBER_BINARY) &&
-        !ConsumeToken(input_stream, pin_definition.get(),
-                      Token::NUMBER_DECIMAL) &&
-        !ConsumeToken(input_stream, pin_definition.get(), Token::NUMBER_HEX)) {
-      return NULL;
-    }
-
-    if (!ConsumeToken(input_stream, pin_definition.get(),
-                      Token::RIGHT_SQUARE_BRACE)) {
-      return NULL;
-    }
-
-    pin_definition->set_type(ParseNode::ARRAY_PIN_DEFINITION);
-    auto_unwind.Release();
-    return pin_definition.release();
-  }
-
- private:
-  BufferedTokenStream& input_stream_;
-  ParseNode* root_;
-  ParseErrorCollection* error_collection_;
-};
-#endif
-
-#if 0
-ParseNode* ConsumeNonTerminal(
-    BufferedTokenStream& input_stream, ParseErrorCollection* error_collection,
-    std::vector<NonTerminalEvaluator> const & evaluators) {
-
-  ParseNode* parse_node = NULL;
-
-
-#if 0
-  std::vector<NonTerminalEvaluator>::const_iterator iter(evaluators.begin()),
-      end(evaluators.end());
-  for (; iter != end; ++iter) {
-    (*iter)(input_stream, error_collection
-  }
-#endif
-
-  return NULL;
+  context.node()->set_type(ParseNode::IMMEDIATE_VALUE);
+  return context.Release();
 }
-#endif
-
-#if 0
-ParseNode* ConsumeNonTerminal(BufferedTokenStream& input_stream,
-                              ParseErrorCollection* error_collection,
-                              NonTerminalEvaluator evaluator) {
-  ParseNode* non_terminal = new ParseNode;
-  ParseNode::ProductionType production_type =
-      evaluator(input_stream, non_terminal, error_collection);
-  if (ParseNode::UNKNOWN == production_type)
-    delete non_terminal;
-
-  return non_termainal;
-}
-#endif
 
 // Identifier Definition
 // name
 // name[NUMBER]
 ParseNode* EvalIdentifierDefinition(BufferedTokenStream& input_stream,
-                              ParseErrorCollection* error_collection) {
+                                    ParseErrorCollection* error_collection) {
   ParsingContext context(input_stream, error_collection);
-  if (!context.ConsumeToken(Token::IDENTIFIER)) {
+  if (!context.ConsumeToken(Token::IDENTIFIER))
     return NULL;
-  }
 
   if (!context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
     context.node()->set_type(ParseNode::SINGLE_PIN_DEFINITION);
@@ -293,6 +109,7 @@ ParseNode* EvalIdentifierDefinition(BufferedTokenStream& input_stream,
     Token::NUMBER_HEX,
     static_cast<Token::TokenType>(0)
   };
+
   if (!context.ConsumeToken(kNumberTokens)) {
     return NULL;
   }
@@ -353,9 +170,9 @@ ParseNode* EvalNumberList(BufferedTokenStream& input_stream,
 }
 
 // name
-// name[number]
+// name[number_list]
 // name.pin
-// name[number].pin[number]
+// name[number_list].pin[number_list]
 ParseNode* EvalIdentifierReference(BufferedTokenStream& input_stream,
                                    ParseErrorCollection* error_collection) {
   ParsingContext context(input_stream, error_collection);
@@ -363,11 +180,11 @@ ParseNode* EvalIdentifierReference(BufferedTokenStream& input_stream,
   if (!context.ConsumeToken(Token::IDENTIFIER))
     return NULL;
 
-  if (context.ConsumeToken(Token::LEFT_PAREN)) {
+  if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
     if (!context.ConsumeNonTerminal(EvalNumberList))
       return NULL;
 
-    if (!context.ConsumeToken(Token::RIGHT_PAREN))
+    if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
       return NULL;
   }
 
@@ -375,11 +192,11 @@ ParseNode* EvalIdentifierReference(BufferedTokenStream& input_stream,
     if (!context.ConsumeToken(Token::IDENTIFIER))
       return NULL;
 
-    if (context.ConsumeToken(Token::LEFT_PAREN)) {
+    if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
       if (!context.ConsumeNonTerminal(EvalNumberList))
         return NULL;
 
-      if (!context.ConsumeToken(Token::RIGHT_PAREN))
+      if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
         return NULL;
     }
   }
@@ -388,6 +205,75 @@ ParseNode* EvalIdentifierReference(BufferedTokenStream& input_stream,
   return context.Release();
 }
 
+ParseNode* EvalChipIdentifierReferenceList(
+    BufferedTokenStream& input_stream,
+    ParseErrorCollection* error_collection);
+
+// Evaluates a chip instance in an R-Value
+ParseNode* EvalChipIdentifierReference(BufferedTokenStream& input_stream,
+                                       ParseErrorCollection* error_collection) {
+  ParsingContext context(input_stream, error_collection);
+
+  if (!context.ConsumeToken(Token::IDENTIFIER))
+    return NULL;
+
+  if (!context.ConsumeToken(Token::LEFT_PAREN))
+    return NULL;
+
+  if (!context.ConsumeNonTerminal(EvalChipIdentifierReferenceList))
+    return NULL;
+
+  if (!context.ConsumeToken(Token::RIGHT_PAREN))
+    return NULL;
+
+  context.node()->set_type(ParseNode::CHIP_REFERENCE);
+  return context.Release();
+}
+
+ParseNode* EvalChipIdentifierReferenceList(
+    BufferedTokenStream& input_stream,
+    ParseErrorCollection* error_collection) {
+  ParsingContext context(input_stream, error_collection);
+
+  static NonTerminalEvaluator chip_or_identifier[] = {
+      EvalChipIdentifierReference,
+      EvalIdentifierReference,
+      EvalImmediateValue,
+      NULL
+    };
+
+  if (!context.ConsumeNonTerminal(chip_or_identifier))
+    return NULL;
+
+  while (context.ConsumeToken(Token::COMMA)) {
+    if (!context.ConsumeNonTerminal(chip_or_identifier))
+      return NULL;
+  }
+
+  context.node()->set_type(ParseNode::CHIP_REFERENCE_LIST);
+  return context.Release();
+}
+
+// identifier-reference
+// identifier-reference, identifier-reference
+ParseNode* EvalIdentifierReferenceList(BufferedTokenStream& input_stream,
+                                       ParseErrorCollection* error_collection) {
+  ParsingContext context(input_stream, error_collection);
+
+  if (!context.ConsumeNonTerminal(EvalIdentifierReference))
+    return NULL;
+
+  while (context.ConsumeToken(Token::COMMA)) {
+    if (!context.ConsumeNonTerminal(EvalIdentifierReference))
+      return NULL;
+  }
+
+  context.node()->set_type(ParseNode::IDENTIFIER_REFERENCE_LIST);
+  return context.Release();
+}
+
+// identifier
+// identifier , identifier
 ParseNode* EvalIdentifierList(BufferedTokenStream& input_stream,
                               ParseErrorCollection* error_collection) {
   ParsingContext context(input_stream, error_collection);
@@ -396,190 +282,14 @@ ParseNode* EvalIdentifierList(BufferedTokenStream& input_stream,
     return NULL;
 
   while (context.ConsumeToken(Token::COMMA)) {
-    if (!context.ConsumeNonTerminal(EvalIdentifierDefinition)) {
+    if (!context.ConsumeNonTerminal(EvalIdentifierDefinition))
       // TODO - record an error here;
       return NULL;
-    }
   }
 
   context.node()->set_type(ParseNode::IDENTIFIER_DEFINITION_LIST);
   return context.Release();
 }
-
-#if 0
-bool EvalWireDeclaration(BufferedTokenStream& input_stream,
-                         ParseNode* wire_declaration,
-                         ParseErrorCollection* error_collection) {
-  AutoParseNodeUnwinder auto_unwind(&input_stream, wire_declaration);
-
-  if (!ConsumeToken(input_stream, wire_declaration, Token::WIRE))
-    return false;
-
-  if (!ConsumeNonTerminal(input_stream, wire_declaration, error_collection,
-                          EvalPinDefinition))
-    return false;
-
-  if (!ConsumeToken(input_stream, wire_declaration, Token::SEMI_COLON))
-    return false;
-
-  wire_declaration->set_type(ParseNode::WIRE_DECLARATION);
-  auto_unwind.Release();
-  return true;
-}
-
-bool EvalChipDeclaration(BufferedTokenStream& input_stream,
-                         ParseNode* chip_declaration,
-                         ParseErrorCollection* error_collection) {
-  AutoParseNodeUnwinder auto_unwind(&input_stream, chip_declaration);
-
-  if (!ConsumeToken(input_stream, chip_declaration, Token::CHIP))
-    return false;
-
-  // Only allow for a single instance?
-  if (!ConsumeToken(input_stream, chip_declaration, Token::IDENTIFIER))
-    return false;
-
-  if (!ConsumeToken(input_stream, chip_declaration, Token::SEMI_COLON))
-    return false;
-
-  chip_declaration->set_type(ParseNode::CHIP_DECLARATION);
-  auto_unwind.Release();
-  return true;
-}
-
-bool EvalNumberRange(BufferedTokenStream& input_stream,
-                     ParseNode* range,
-                     ParseErrorCollection* error_collection) {
-  AutoParseNodeUnwinder auto_unwind(&input_stream, range);
-
-  // Number ranges only allow decimal numbers
-  if (!ConsumeToken(input_stream, range, Token::NUMBER_DECIMAL))
-    return false;
-
-  if (!ConsumeToken(input_stream, range, Token::DOT_DOT))
-    return false;
-
-  if (!ConsumeToken(input_stream, range, Token::NUMBER_DECIMAL))
-    return false;
-
-  range->set_type(ParseNode::NUMBER_RANGE);
-  auto_unwind.Release();
-  return true;
-}
-
-bool EvalNumberOrNumberRange(BufferedTokenStream& input_stream,
-                             ParseNode* number_or_range,
-                             ParseErrorCollection* error_collection) {
-  AutoParseNodeUnwinder auto_unwind(&input_stream, number_or_range);
-
-  ParseErrorCollection local_errors;
-  if (ConsumeNonTerminal(input_stream, number_or_range, &local_errors,
-                         EvalNumberRange)) {
-    auto_unwind.Release();
-    return true;
-  }
-
-  if (ConsumeToken(input_stream, number_or_range, Token::NUMBER_DECIMAL) ||
-      ConsumeToken(input_stream, number_or_range, Token::NUMBER_HEX) ||
-      ConsumeToken(input_stream, number_or_range, Token::NUMBER_BINARY)) {
-    number_or_range->set_type(ParseNode::NUMBER);
-    auto_unwind.Release();
-    return true;
-  }
-  
-  return false;
-}
-
-bool EvalNumberCollection(BufferedTokenStream& input_stream,
-                          ParseNode* number_collection,
-                          ParseErrorCollection* error_collection) {
-  AutoParseNodeUnwinder auto_unwind(&input_stream, number_collection);
-
-  if (!ConsumeNonTerminal(input_stream, number_collection, error_collection,
-                          EvalNumberOrNumberRange))
-    return false;
-
-  while(ConsumeToken(input_stream, number_collection, Token::COMMA)){
-    if (!ConsumeNonTerminal(input_stream, number_collection, error_collection,
-                            EvalNumberOrNumberRange))
-        return false;
-  }
-
-  number_collection->set_type(ParseNode::NUMBER_COLLECTION);
-  auto_unwind.Release();
-  return true;
-}
-
-bool EvalAssignmentLValue(BufferedTokenStream& input_stream,
-                          ParseNode* l_value,
-                          ParseErrorCollection* error_collection) {
-  return false;
-}
-
-bool EvalAssignmentRValue(BufferedTokenStream& input_stream,
-                          ParseNode* r_value,
-                          ParseErrorCollection* error_collection) {
-  return false;
-}
-
-bool EvalLeftPinAssignStatement(BufferedTokenStream& input_stream,
-                                ParseNode* statement,
-                                ParseErrorCollection* error_collection) {
-  return false;
-}
-
-bool EvalPinAssignStatement(BufferedTokenStream& input_stream,
-                            ParseNode* statement,
-                            ParseErrorCollection* error_collection) {
-  AutoParseNodeUnwinder auto_unwind(&input_stream, statement);
-
-  ParseErrorCollection local_errors;
-  if (ConsumeNonTerminal(input_stream, statement, &local_errors,
-                         EvalLeftPinAssignStatement)) {
-    // assign a statement type
-    auto_unwind.Release();
-    return true;
-  }
-
-#if 0
-  if (ConsumeNonTerminal(input_stream, statement, error_collection,
-                         EvalRightPinAssignStatement)) {
-    // assign a statement type
-    auto_unwind.Release();
-    return true;
-  }
-#endif
-
-  error_collection->RegisterErrorCollection(local_errors);
-  return false;
-}
-
-bool EvalChipBody(BufferedTokenStream& input_stream,
-                  ParseNode* chip_body,
-                  ParseErrorCollection* error_collection) {
-  AutoParseNodeUnwinder auto_unwind(&input_stream, chip_body);
-
-  bool valid_body = false;
-  while (true) {
-    ParseErrorCollection local_errors;
-    if (ConsumeNonTerminal(input_stream, chip_body, &local_errors,
-                          EvalChipDeclaration))
-      continue;
-
-    if (ConsumeNonTerminal(input_stream, chip_body, &local_errors,
-                           EvalWireDeclaration))
-      continue;
-
-    if (Token::RIGHT_BRACE == input_stream.Peek().type()) {
-      valid_body = true;
-      break;
-    }
-  }
-
-  auto_unwind.Release();
-  return valid_body;
-}
-#endif
 
 // chip name;
 // chip name[NUMBER];
@@ -619,16 +329,49 @@ ParseNode* EvalWireInstance(BufferedTokenStream& input_stream,
   return context.Release();
 }
 
+// R-values can include chip instantiations
 ParseNode* EvalRValue(BufferedTokenStream& input_stream,
                       ParseErrorCollection* error_collection) {
   ParsingContext context(input_stream, error_collection);
+
+  if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
+    if (!context.ConsumeNonTerminal(EvalChipIdentifierReferenceList))
+      return NULL;
+
+    if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
+      return NULL;
+
+    context.node()->set_type(ParseNode::RVALUE_LIST);
+    return context.Release();
+  }
+
+  if (!context.ConsumeNonTerminal(EvalChipIdentifierReferenceList))
+    return NULL;
+
+  context.node()->set_type(ParseNode::RVALUE);
   return context.Release();
 }
 
+// L value is a list of references with no implicit chip calls
 ParseNode* EvalLValue(BufferedTokenStream& input_stream,
                       ParseErrorCollection* error_collection) {
   ParsingContext context(input_stream, error_collection);
 
+  if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
+    if (!context.ConsumeNonTerminal(EvalIdentifierReferenceList))
+      return NULL;
+
+    if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
+      return NULL;
+
+    context.node()->set_type(ParseNode::LVALUE_LIST);
+    return context.Release();
+  }
+
+  if (!context.ConsumeNonTerminal(EvalIdentifierReference))
+    return NULL;
+
+  context.node()->set_type(ParseNode::LVALUE);
   return context.Release();
 }
 
@@ -639,7 +382,7 @@ ParseNode* EvalLeftAssignStatement(BufferedTokenStream& input_stream,
   if (!context.ConsumeNonTerminal(EvalLValue))
     return NULL;
 
-  if (!context.ConsumeToken(Token::RIGHT_ARROW))
+  if (!context.ConsumeToken(Token::LEFT_ARROW))
     return NULL;
 
   if (!context.ConsumeNonTerminal(EvalRValue))
@@ -652,6 +395,26 @@ ParseNode* EvalLeftAssignStatement(BufferedTokenStream& input_stream,
   return context.Release();
 }
 
+ParseNode* EvalRightAssignStatement(BufferedTokenStream& input_stream,
+                                   ParseErrorCollection* error_collection) {
+  ParsingContext context(input_stream, error_collection);
+
+  if (!context.ConsumeNonTerminal(EvalRValue))
+    return NULL;
+
+  if (!context.ConsumeToken(Token::RIGHT_ARROW))
+    return NULL;
+
+  if (!context.ConsumeNonTerminal(EvalLValue))
+    return NULL;
+
+  if (!context.ConsumeToken(Token::SEMI_COLON))
+    return NULL;
+
+  context.node()->set_type(ParseNode::RIGHT_ASSIGN_STATEMENT);
+  return context.Release();
+}
+
 ParseNode* EvalChipBody(BufferedTokenStream& input_stream,
                         ParseErrorCollection* error_collection) {
   ParsingContext context(input_stream, error_collection);
@@ -660,8 +423,17 @@ ParseNode* EvalChipBody(BufferedTokenStream& input_stream,
       EvalChipInstance,
       EvalWireInstance,
       EvalLeftAssignStatement,
+      EvalRightAssignStatement,
       NULL
     };
+
+  while (context.ConsumeNonTerminal(chip_body_statements)) {
+  }
+
+  if (Token::RIGHT_BRACE != input_stream.Peek().type())
+    return NULL;
+
+  context.node()->set_type(ParseNode::CHIP_BODY);
   return context.Release();
 }
 
@@ -695,6 +467,8 @@ ParseNode* EvalChipDefinition(BufferedTokenStream& input_stream,
     return NULL;
 
   // Evaluate body
+  if (!context.ConsumeNonTerminal(EvalChipBody))
+    return NULL;
 
   if (!context.ConsumeToken(Token::RIGHT_BRACE))
     return NULL;
@@ -730,14 +504,146 @@ ParseNode* EvalTHDFile(BufferedTokenStream& input_stream,
       NULL
     };
 
-    if (!context.ConsumeNonTerminal(top_level_statements)) {
-      // TODO:  Specify some error recovery logic.
-      return NULL;
+    while (context.ConsumeNonTerminal(top_level_statements)) {
     }
   }
 
+  if (!input_stream.IsEOS())
+    return NULL;
+
   context.node()->set_type(ParseNode::THD_MODULE);
   return context.Release();
+}
+
+}  // namespace
+
+void ParserEntries::InitForParsing() {
+  delete node_;
+  delete error_collection_;
+
+  node_ = NULL;
+  error_collection_ = new ParseErrorCollection();
+}
+
+bool ParserEntries::ParseImmediateValue(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalImmediateValue(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseIdentifierDefinition(
+    BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalIdentifierDefinition(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseNumberOrRange(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalNumberOrRange(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseNumberList(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalNumberList(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseIdentifierReference(
+    BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalIdentifierReference(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseChipIdentifierReference(
+    BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalChipIdentifierReference(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseChipIdentifierReferenceList(
+    BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalChipIdentifierReferenceList(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseIdentifierReferenceList(
+    BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalIdentifierReferenceList(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseIdentifierList(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalIdentifierList(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseChipInstance(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalChipInstance(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseWireInstance(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalWireInstance(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseRValue(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalRValue(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseLValue(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalLValue(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseLeftAssignStatement(
+    BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalLeftAssignStatement(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseRightAssignStatement(
+    BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalRightAssignStatement(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseChipBody(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalChipBody(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseChipDefinition(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalChipDefinition(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseImportClause(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalImportClause(input_stream, error_collection_);
+  return NULL != node_;
+}
+
+bool ParserEntries::ParseTHDFile(BufferedTokenStream& input_stream) {
+  InitForParsing();
+  node_ = EvalTHDFile(input_stream, error_collection_);
+  return NULL != node_;
 }
 
 #if 0
@@ -750,10 +656,11 @@ bool EvalTHDModule(BufferedTokenStream& input_stream,
 }
 #endif
 
+#if 0
 int main(int argc, char* argv[]) {
   std::ifstream fstream("example.thd");
 
-  if (!fstream) { 
+  if (!fstream) {
     return 0;
   }
 
@@ -771,6 +678,8 @@ int main(int argc, char* argv[]) {
 
   ParseNode* chip_node = EvalTHDFile(buffered_stream, &errors);
 
+  std::cout << *chip_node;
+
 #if 0
   while (!token_stream.IsEOS()) {
     Token token = token_stream.Get();
@@ -781,3 +690,4 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
+#endif

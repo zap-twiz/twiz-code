@@ -7,6 +7,7 @@
 #include <vector>
 #include <utility>
 
+#include <iostream>
 
 class ParseNode {
  public:
@@ -15,28 +16,42 @@ class ParseNode {
     IDENTIFIER_DEFINITION,
     IDENTIFIER_DEFINITION_LIST,
     IDENTIFIER_REFERENCE,
+    IDENTIFIER_REFERENCE_LIST,
+    CHIP_REFERENCE,
+    CHIP_REFERENCE_LIST,
     CHIP_INSTANCE,
     WIRE_INSTANCE,
     LEFT_ASSIGN_STATEMENT,
-    
-    
-    // OLD DEFINITIONS
+    RIGHT_ASSIGN_STATEMENT,
+    CHIP_BODY,
+    LVALUE_LIST,
+    LVALUE,
+    RVALUE_LIST,
+    RVALUE,
+    IMMEDIATE_VALUE,
     CHIP_DEFINITION,
-    ARGUMENT_DEFINITION,
     SINGLE_PIN_DEFINITION,
+    IMPORT_STATEMENT,
+
+    // OLD DEFINITIONS
+    ARGUMENT_DEFINITION,
     ARRAY_PIN_DEFINITION,
     WIRE_DECLARATION,
     PIN_ASSIGNMENT,
     PIN_REFERENCE,
     PIN_COLLECTION,
     CHIP_DECLARATION,
-    CHIP_REFERENCE,
-    IMPORT_STATEMENT,
     NUMBER_RANGE,
     NUMBER_COLLECTION,
     NUMBER,
     UNKNOWN
   };
+
+  typedef std::pair<ParseNode*, int> NonTerminalReference;
+  typedef std::pair<Token, int> TerminalReference;
+
+  typedef std::vector<NonTerminalReference> NonTerminalArray;
+  typedef std::vector<TerminalReference> TerminalArray;
 
   ParseNode() : type_(UNKNOWN) {}
   ~ParseNode() {} // TODO:  Fix leaking parse node children
@@ -65,19 +80,11 @@ class ParseNode {
   void VisitChildrenRightToLeft(Visitor * visitor) const;
   void VisitChildrenLeftToRight(Visitor * visitor) const;
 
-#if 0
-  std::vector<Token>& terminals() { return terminals_; }
-  std::vector<ParseNode>& non_terminals() { return non_terminal_children_; }
-#endif
+  TerminalArray& terminals() { return terminals_; }
+  NonTerminalArray& non_terminals() { return non_terminals_; }
 
  private:
   ProductionType type_;
-
-  typedef std::pair<ParseNode*, int> NonTerminalReference;
-  typedef std::pair<Token, int> TerminalReference;
-
-  typedef std::vector<NonTerminalReference> NonTerminalArray;
-  typedef std::vector<TerminalReference> TerminalArray;
 
   NonTerminalArray non_terminals_;
   TerminalArray terminals_;
@@ -86,4 +93,5 @@ class ParseNode {
   DISALLOW_COPY_AND_ASSIGN(ParseNode);
 };
 
+std::ostream& operator<<(std::ostream& stream, ParseNode const & node);
 #endif  //INCLUDED_PARSER_PARSE_NODE_H_

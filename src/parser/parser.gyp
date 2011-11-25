@@ -6,9 +6,10 @@
   'targets': [
     {
       'target_name': 'parser',
-      'type': 'executable',
+      'type': 'static_library',
       'sources': [
         'parser.cc',
+		'parser.h',
         'parse_error.h',
         'parse_error_collection.h',
         'parse_node.cc',
