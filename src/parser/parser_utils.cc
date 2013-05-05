@@ -134,7 +134,6 @@ void UnwindParseNode(BufferedTokenStream* stream, ParseNode const* parse_node) {
 
    private:
     BufferedTokenStream* stream_;
-    DISALLOW_COPY_AND_ASSIGN(UnwindVisitor);
   };
 
   UnwindVisitor unwind_visitor(stream);

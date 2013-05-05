@@ -1,86 +1,10 @@
 
 #include "lexer/lex_utils.h"
 
+#include "base/string_utils.h"
 #include "streams/buffered_stream.h"
 #include "streams/stream.h"
 
-
-namespace {
-const char kCaseOffset = 'A' - 'a';
-}
-
-bool IsWhiteSpace(char value) {
-  switch(value) {
-    case ' ':
-    case '\n':
-    case '\t':
-    case '\r':
-      return true;
-    default:
-      return false;
-  }
-}
-
-bool IsLowerCase(char value) {
-  return value >= 'a' && value <= 'z';
-}
-
-bool IsUpperCase(char value) {
-  return value >= 'A' && value <= 'Z';
-}
-
-char ToLower(char value) {
-  if (IsUpperCase(value))
-    value -= kCaseOffset;
-  return value;
-}
-
-char ToUpper(char value) {
-  if (IsLowerCase(value))
-    value += kCaseOffset;
-  return value;
-}
-
-bool IsDigit(char value) {
-  return value >= '0' && value <= '9';
-}
-
-bool IsHexDigit(char value) {
-  return IsDigit(value) || (value >= 'A' && value <= 'F');
-}
-
-bool IsBinaryDigit(char value) {
-  return '0' == value || '1' == value;
-}
-
-bool IsAlphaNumeric(char value) {
-  return IsDigit(value) || IsLowerCase(value) || IsUpperCase(value);
-}
-
-bool IsAlpha(char value) {
-  return IsLowerCase(value) || IsUpperCase(value);
-}
-
-bool IsSpecialCharacter(char value) {
-  switch(value) {
-    case '<':
-    case '>':
-    case '-':
-    case '.':
-    case '[': case ']':
-    case '(': case ')':
-    case '{': case '}':
-    case ',':
-    case ';':
-      return true;
-    default:
-      return false;
-  }
-}
-
-bool IsValidCharacter(char value) {
-  return IsAlphaNumeric(value) || IsSpecialCharacter(value);
-}
 
 std::string ReadNonWhiteSpace(BufferedStream<char>& input) {
   std::string token;

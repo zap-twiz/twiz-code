@@ -40,7 +40,7 @@ class Token {
   static char const * const kTokenTypeNames[];
 
   Token(int line, TokenType type, const std::string& value)
-      : line_(line), type_(type), value_(value) {}
+    : line_(line), type_(type), value_(value) {}
 
   TokenType type() const { return type_; }
 

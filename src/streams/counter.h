@@ -3,10 +3,16 @@
 
 #include "streams/stream_with_observer.h"
 
+#include "base/base.h"
+
 class Counter {
  public:
+  Counter() {}
   virtual ~Counter() {}
   virtual size_t GetCount() const = 0;
+
+ private:
+  DISALLOW_COPY_AND_ASSIGN(Counter);
 };
 
 template <typename T>

@@ -29,9 +29,11 @@ class ParsingContext {
       node_(new ParseNode),
       unwinder_(&input_stream_, node_) {
   }
+
   ~ParsingContext() {
-    if (!node_)
+    if (!node_) {
       unwinder_.Release();
+    }
 
     unwinder_.Unwind();
 
@@ -497,7 +499,7 @@ ParseNode* EvalImportClause(BufferedTokenStream& input_stream,
 ParseNode* EvalTHDFile(BufferedTokenStream& input_stream,
                        ParseErrorCollection *error_collection) {
   ParsingContext context(input_stream, error_collection);
-  while(!input_stream.IsEOS()) {
+  while (!input_stream.IsEOS()) {
     static NonTerminalEvaluator top_level_statements[] = {
       EvalImportClause,
       EvalChipDefinition,
@@ -644,6 +646,14 @@ bool ParserEntries::ParseTHDFile(BufferedTokenStream& input_stream) {
   InitForParsing();
   node_ = EvalTHDFile(input_stream, error_collection_);
   return NULL != node_;
+}
+
+Parser::Parser(BufferedTokenStream &input_stream)
+  : input_stream_(input_stream) {
+}
+
+bool Parser::Evaluate() {
+  return entries_.ParseTHDFile(input_stream_);
 }
 
 #if 0

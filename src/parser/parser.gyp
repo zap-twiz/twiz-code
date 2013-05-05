@@ -9,7 +9,7 @@
       'type': 'static_library',
       'sources': [
         'parser.cc',
-		'parser.h',
+        'parser.h',
         'parse_error.h',
         'parse_error_collection.h',
         'parse_node.cc',
