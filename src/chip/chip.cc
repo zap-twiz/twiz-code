@@ -172,7 +172,7 @@ class Board {
 
 class CompositeChip : public Chip {
  public:
-  CompositeChip(ChipDescription* description);
+  CompositeChip(ChipDescription const * description);
   virtual ~CompositeChip() {}
 
   Board& board() { return board_; }
@@ -182,14 +182,14 @@ class CompositeChip : public Chip {
   Board board_;
 };
 
-CompositeChip::CompositeChip(ChipDescription* description) : Chip(description) {
+CompositeChip::CompositeChip(ChipDescription const * description) : Chip(description) {
   addInputPins(description->num_input_ports());
   addOutputPins(description->num_output_ports());
 }
 
 class CompositeChipBuilder : public ChipBuilder {
  public:
-  CompositeChipBuilder(ChipDescription* description,
+  CompositeChipBuilder(ChipDescription const * description,
                        WorkBench& bench)
     : description_(description),
       bench_(bench) {}
@@ -202,7 +202,7 @@ class CompositeChipBuilder : public ChipBuilder {
   WorkBench* bench() { return &bench_; }
 
  private:
-  ChipDescription* description_;
+  ChipDescription const * description_;
   WorkBench& bench_;
 };
 
@@ -296,7 +296,7 @@ ChipDescription* NotBuilder::GetDescription() {
 
 class ProgrammableChipBuilder : public CompositeChipBuilder {
  public:
-  ProgrammableChipBuilder(ChipDescription* description,
+  ProgrammableChipBuilder(ChipDescription const * description,
                           WorkBench& bench)
     : CompositeChipBuilder(description, bench) {}
 
@@ -313,7 +313,7 @@ class ProgrammableChipBuilder : public CompositeChipBuilder {
 };
 
 ProgrammableChipBuilder::~ProgrammableChipBuilder() {
-  std::vector<ChipBuildInstruction*>::iterator iter(operation_stack_.begin),
+  std::vector<ChipBuildInstruction*>::iterator iter(operation_stack_.begin()),
       end(operation_stack_.end());
   for (; iter != end; ++iter) {
     delete *iter;
@@ -322,8 +322,9 @@ ProgrammableChipBuilder::~ProgrammableChipBuilder() {
 
 CompositeChip* ProgrammableChipBuilder::CreateInstance() {
   CompositeChip* chip = new CompositeChip(description());
-  Board* board = chip->board();
+  Board& board = chip->board();
 
+#if 0
   WorkBench* bench = bench();
 
   std::vector<ChipBuildInstruction*>::iterator iter(operation_stack_.begin()),
@@ -331,6 +332,7 @@ CompositeChip* ProgrammableChipBuilder::CreateInstance() {
   for (; iter != end; ++iter) {
     iter->DoEvaluate(*bench, board);
   }
+#endif
 
   return chip;
 }
