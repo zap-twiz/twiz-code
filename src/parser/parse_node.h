@@ -33,7 +33,12 @@ class ParseNode {
     SINGLE_PIN_DEFINITION,
     IMPORT_STATEMENT,
 
+    NUMBER_RANGE,
+    NUMBER_COLLECTION,
+    NUMBER,
+
     // OLD DEFINITIONS
+    /*
     ARGUMENT_DEFINITION,
     ARRAY_PIN_DEFINITION,
     WIRE_DECLARATION,
@@ -43,9 +48,11 @@ class ParseNode {
     CHIP_DECLARATION,
     NUMBER_RANGE,
     NUMBER_COLLECTION,
-    NUMBER,
+    NUMBER,*/
     UNKNOWN
   };
+
+  static char const * const kProductionTypeNames[];
 
   typedef std::pair<ParseNode*, int> NonTerminalReference;
   typedef std::pair<Token, int> TerminalReference;
@@ -54,7 +61,9 @@ class ParseNode {
   typedef std::vector<TerminalReference> TerminalArray;
 
   ParseNode() : type_(UNKNOWN) {}
-  ~ParseNode() {} // TODO:  Fix leaking parse node children
+  ~ParseNode() {
+    FreeChildren();
+  }
 
   ProductionType type() const { return type_; }
   void set_type(ProductionType type) { type_ = type; }
@@ -70,6 +79,8 @@ class ParseNode {
 
   size_t size() const { return terminals_.size() + non_terminals_.size(); }
 
+  void FreeChildren();
+
   class Visitor {
    public:
     virtual ~Visitor() {}
@@ -81,7 +92,9 @@ class ParseNode {
   void VisitChildrenLeftToRight(Visitor * visitor) const;
 
   TerminalArray& terminals() { return terminals_; }
+  TerminalArray const & terminals() const { return terminals_; }
   NonTerminalArray& non_terminals() { return non_terminals_; }
+  NonTerminalArray const & non_terminals() const { return non_terminals_; }
 
  private:
   ProductionType type_;
@@ -92,6 +105,8 @@ class ParseNode {
   // No copy or assign!
   DISALLOW_COPY_AND_ASSIGN(ParseNode);
 };
+
+char const * GetProductionType(ParseNode::ProductionType type);
 
 std::ostream& operator<<(std::ostream& stream, ParseNode const & node);
 #endif  //INCLUDED_PARSER_PARSE_NODE_H_

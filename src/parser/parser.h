@@ -61,6 +61,7 @@ class Parser {
 
  private:
   ParserEntries entries_;
+  BufferedTokenStream& input_stream_;
 
   DISALLOW_COPY_AND_ASSIGN(Parser);
 };

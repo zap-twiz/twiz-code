@@ -5,37 +5,15 @@
 
 namespace {
 
-char* kProductionNames[] = {
-    "THD_MODULE",
-    "IDENTIFIER_DEFINITION",
-    "IDENTIFIER_DEFINITION_LIST",
-    "IDENTIFIER_REFERENCE",
-    "IDENTIFIER_REFERENCE_LIST",
-    "CHIP_REFERENCE",
-    "CHIP_REFERENCE_LIST",
-    "CHIP_INSTANCE",
-    "WIRE_INSTANCE",
-    "LEFT_ASSIGN_STATEMENT",
-    "RIGHT_ASSIGN_STATEMENT",
-    "CHIP_BODY",
-    "LVALUE_LIST",
-    "LVALUE",
-    "RVALUE_LIST",
-    "RVALUE",
-    "IMMEDIATE_VALUE",
-    "CHIP_DEFINITION",
-    "SINGLE_PIN_DEFINITION",
-    "IMPORT_STATEMENT"
-  };
-
 class IndentedStream {
  public:
   explicit IndentedStream(std::ostream& stream) : stream_(stream), indent_(0) {}
   void AddIndent(int indent) { indent_ += indent; }
 
   void Indent() {
-    for (int x = 0; x < indent_; ++x)
+    for (int x = 0; x < indent_; ++x) {
       stream_ << '\t';
+    }
   }
 
   std::ostream& out() { return stream_; }
@@ -69,7 +47,7 @@ class StreamVisitor: public ParseNode::Visitor {
 
 std::ostream& operator<<(IndentedStream& stream, ParseNode const & node) {
   stream.Indent();
-  static_cast<std::ostream&>(stream) << "<" << kProductionNames[node.type()]
+  static_cast<std::ostream&>(stream) << "<" << ParseNode::kProductionTypeNames[node.type()]
       << ">" << std::endl;
   stream.AddIndent(1);
 
@@ -79,14 +57,55 @@ std::ostream& operator<<(IndentedStream& stream, ParseNode const & node) {
   stream.AddIndent(-1);
   stream.Indent();
 
-  static_cast<std::ostream&>(stream) << "</" << kProductionNames[node.type()]
+  static_cast<std::ostream&>(stream) << "</" << ParseNode::kProductionTypeNames[node.type()]
       << ">" << std::endl;
 
   return stream;
 }
 
-
 }  // unnamed
+
+char const * const ParseNode::kProductionTypeNames[] = {
+    "THD_MODULE",
+    "IDENTIFIER_DEFINITION",
+    "IDENTIFIER_DEFINITION_LIST",
+    "IDENTIFIER_REFERENCE",
+    "IDENTIFIER_REFERENCE_LIST",
+    "CHIP_REFERENCE",
+    "CHIP_REFERENCE_LIST",
+    "CHIP_INSTANCE",
+    "WIRE_INSTANCE",
+    "LEFT_ASSIGN_STATEMENT",
+    "RIGHT_ASSIGN_STATEMENT",
+    "CHIP_BODY",
+    "LVALUE_LIST",
+    "LVALUE",
+    "RVALUE_LIST",
+    "RVALUE",
+    "IMMEDIATE_VALUE",
+    "CHIP_DEFINITION",
+    "SINGLE_PIN_DEFINITION",
+    "IMPORT_STATEMENT",
+
+    "NUMBER_RANGE",
+    "NUMBER_COLLECTION",
+    "NUMBER",
+    "UNKNOWN"
+  };
+
+
+void ParseNode::FreeChildren() {
+  NonTerminalArray::iterator iter(non_terminals_.begin()),
+    end(non_terminals_.end());
+  for (; iter != end; ++iter) {
+    delete iter->first;
+  }
+
+  non_terminals_.clear();
+  terminals_.clear();
+
+  type_ = UNKNOWN;
+}
 
 void ParseNode::VisitChildrenRightToLeft(Visitor * visitor) const {
   if (!visitor)
@@ -159,13 +178,13 @@ void ParseNode::VisitChildrenLeftToRight(Visitor * visitor) const {
 std::ostream& operator<<(std::ostream& stream, ParseNode const & node) {
   IndentedStream indented(stream);
 
-  indented.out() << "<" << kProductionNames[node.type()] << ">" << std::endl;
+  indented.out() << "<" << ParseNode::kProductionTypeNames[node.type()] << ">" << std::endl;
   indented.AddIndent(1);
 
   StreamVisitor output_visitor(indented);
   node.VisitChildrenLeftToRight(&output_visitor);
 
   indented.AddIndent(-1);
-  indented.out() << "</" << kProductionNames[node.type()] << ">";
+  indented.out() << "</" << ParseNode::kProductionTypeNames[node.type()] << ">";
   return stream;
 }
