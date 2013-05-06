@@ -22,6 +22,7 @@ class OutputPin {
 
   void addWire(Wire* wire) { wires_.push_back(wire); }
   void removeWire(Wire* wire) {
+    // TODO:  This shouldn't be O(N).
     wires_.erase(std::find(wires_.begin(), wires_.end(), wire));
   }
 

@@ -131,61 +131,6 @@ FixedLowChip* FixedLowBuilder::CreateInstance() {
 
 
 
-class Board {
- public:
-  Board() {}
-  virtual ~Board() {
-    destroy();
-  }
-
-  Chip* AddChip(Chip* chip) {
-    chips_.push_back(chip);
-    return chip;
-  }
-  std::vector<Chip*> const & chips() const { return chips_; }
-
-  Wire* AddWire() {
-    Wire* wire = new Wire();
-    wires_.push_back(wire);
-    return wire;
-  }
-  std::vector<Wire*> const & wires() const { return wires_; }
- private:
-  void destroy() {
-    {
-      std::vector<Wire*>::iterator iter(wires_.begin()), end(wires_.end());
-      for (; iter != end; ++iter) {
-        delete *iter;
-      }
-    }
-    {
-      std::vector<Chip*>::iterator iter(chips_.begin()), end(chips_.end());
-      for (; iter != end; ++iter) {
-        delete *iter;
-      }
-    }
-  }
-
-  std::vector<Chip*> chips_;
-  std::vector<Wire*> wires_;
-};
-
-class CompositeChip : public Chip {
- public:
-  CompositeChip(ChipDescription const * description);
-  virtual ~CompositeChip() {}
-
-  Board& board() { return board_; }
-  Board const & board() const { return board_; }
- private:
-
-  Board board_;
-};
-
-CompositeChip::CompositeChip(ChipDescription const * description) : Chip(description) {
-  addInputPins(description->num_input_ports());
-  addOutputPins(description->num_output_ports());
-}
 
 class CompositeChipBuilder : public ChipBuilder {
  public:
