@@ -12,6 +12,7 @@
       ],
       'dependencies': [
         '../base/base.gyp:base',
+        '../chip/chip.gyp:chip',
         '../parser/parser.gyp:parser',
       ],
     },

@@ -17,8 +17,10 @@ class ChipBuilder {
 
 class Chip : public NamedElement {
  public:
-  Chip(ChipDescription const * description) : description_(description) {};
+  Chip(ChipDescription const & description) : description_(description) {};
   virtual ~Chip() {};
+
+  ChipDescription const & description() const { return description_; }
 
   std::vector<InputPin>& input_pins() { return input_pins_; }
   std::vector<OutputPin>& output_pins() { return output_pins_; }
@@ -36,7 +38,7 @@ class Chip : public NamedElement {
   std::vector<InputPin> input_pins_;
   std::vector<OutputPin> output_pins_;
 
-  ChipDescription const * description_;
+  ChipDescription const & description_;
 };
 
 

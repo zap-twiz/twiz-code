@@ -26,7 +26,6 @@ class WorkBench {
   }
 
  private:
-
   void ClearBench();
 
   typedef std::map<std::string, ChipBuilder*> BenchMap;

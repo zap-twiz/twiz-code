@@ -293,13 +293,16 @@ ParseNode* EvalIdentifierList(BufferedTokenStream& input_stream,
   return context.Release();
 }
 
-// chip name;
-// chip name[NUMBER];
-// chip name, name2;
+// chip type name;
+// chip type name[NUMBER];
+// chip type name, name2;
 ParseNode* EvalChipInstance(BufferedTokenStream& input_stream,
                             ParseErrorCollection* error_collection) {
   ParsingContext context(input_stream, error_collection);
   if (!context.ConsumeToken(Token::CHIP))
+    return NULL;
+
+  if (!context.ConsumeToken(Token::IDENTIFIER))
     return NULL;
 
   if (!context.ConsumeNonTerminal(EvalIdentifierList))
