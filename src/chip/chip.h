@@ -1,8 +1,8 @@
 #ifndef INCLUDED_CHIP_H_
 #define INCLUDED_CHIP_H_
 
-#include "named_element.h"
-#include "pin.h"
+#include "chip/named_element.h"
+#include "chip/pin.h"
 
 #include <vector>
 
