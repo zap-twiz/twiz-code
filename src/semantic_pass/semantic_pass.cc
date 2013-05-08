@@ -8,7 +8,7 @@
 #include "streams/iostream.h"
 
 #include "chip/chip_description.h"
-
+#include "chip/programmable_chip_builder.h"
 
 #include <fstream>
 
@@ -54,75 +54,6 @@ class SemanticError {
   std::string message_;
 
   SemanticError();
-};
-
-class ThdModuleVisitor : public ParseNode::Visitor {
-};
-
-class IdentifierDefinitionVisitor : public ParseNode::Visitor {
-};
-
-class IdentifierDefinitionListVisitor : public ParseNode::Visitor {
-};
-
-class IdentifierReferenceVisitor : public ParseNode::Visitor {
-};
-
-class IdentifierReferenceListVisitor : public ParseNode::Visitor {
-};
-
-class ChipReferenceVisitor : public ParseNode::Visitor {
-};
-
-class ChipReferenceListVisitor : public ParseNode::Visitor {
-};
-
-class ChipInstanceVisitor : public ParseNode::Visitor {
-};
-
-class WireInstanceVisitor : public ParseNode::Visitor {
-};
-
-class LeftAssignStatementVisitor : public ParseNode::Visitor {
-};
-
-class RightAssignStatementVisitor : public ParseNode::Visitor {
-};
-
-class ChipBodyVisitor : public ParseNode::Visitor {
-};
-
-class LValueListVisitor : public ParseNode::Visitor {
-};
-
-class LValueVisitor : public ParseNode::Visitor {
-};
-
-class RValueListVisitor : public ParseNode::Visitor {
-};
-
-class RValueVisitor : public ParseNode::Visitor {
-};
-
-class ImmediateValueVisitor : public ParseNode::Visitor {
-};
-
-class ChipDefinitionVisitor : public ParseNode::Visitor {
-};
-
-class SinglePinDefinition : public ParseNode::Visitor {
-};
-
-class ImportStatementVisitor : public ParseNode::Visitor {
-};
-
-class NumberRangeVisitor : public ParseNode::Visitor {
-};
-
-class NumberCollectionVisitor : public ParseNode::Visitor {
-};
-
-class NumberVisitor : public ParseNode::Visitor {
 };
 
 int TokenToInt(Token const & token) {
@@ -303,19 +234,74 @@ void IdentifierDefinitionListAdapter::DoEvaluate(ParseNode const & parse_node) {
 }
 
 #include "chip/composite_chip.h"
+#include "chip/composite_chip_builder.h"
 #include "chip/work_bench.h"
+
+class WireInstanceAdapter : public ParseNodeAdapter {
+ public:
+   WireInstanceAdapter(WorkBench const & work_bench,
+                       CompositeChip& chip,
+                       ProgrammableChipBuilder& chip_builder)
+    : work_bench_(work_bench),
+      chip_(chip),
+      chip_builder_(chip_builder) {}
+
+   virtual void DoEvaluate(ParseNode const & parse_node);
+ private:
+  WorkBench const & work_bench_;
+  CompositeChip& chip_;
+  ProgrammableChipBuilder& chip_builder_;
+};
+
+void WireInstanceAdapter::DoEvaluate(ParseNode const & parse_node) {
+  /*
+  if (!context.ConsumeToken(Token::WIRE))
+  if (!context.ConsumeNonTerminal(EvalIdentifierList))
+  if (!context.ConsumeToken(Token::SEMI_COLON))
+  */
+
+  ParseNode::NonTerminalArray const & non_terminals = parse_node.non_terminals();
+
+  IdentifierDefinitionListAdapter adapter;
+  adapter.DoEvaluate(*non_terminals[0].first);
+
+  Board & board = chip_.board();
+
+  std::vector<IdentifierDefinition> const & definitions(adapter.definition_list());
+  std::vector<IdentifierDefinition>::const_iterator iter(definitions.begin()),
+    end(definitions.end());
+  for (; iter != end; ++iter) {
+    std::vector<std::string> chip_names;
+    AppendNamesFromDefinition(*iter, &chip_names);
+
+    std::vector<std::string>::const_iterator name_iter(chip_names.begin()),
+      name_end(chip_names.end());
+    for (; name_iter != name_end; ++name_iter) {
+      if (board.wire(*name_iter) != NULL) {
+        assert(false);
+        // TODO:  Log semantic error - duplicate identifier
+      }
+      board.AddWire(new Wire(*name_iter));
+
+      chip_builder_.PushInstruction(new AddWireInstruction(*name_iter));
+    }
+  }
+}
 
 class ChipInstanceAdapter : public ParseNodeAdapter {
  public:
   ChipInstanceAdapter(WorkBench const & work_bench,
-                      CompositeChip& chip)
+                      CompositeChip& chip,
+                      ProgrammableChipBuilder& chip_builder)
     : work_bench_(work_bench),
-      chip_(chip) {}
+      chip_(chip),
+      chip_builder_(chip_builder) {}
 
   virtual void DoEvaluate(ParseNode const & parse_node);
  private:
   WorkBench const & work_bench_;
   CompositeChip& chip_;
+  ProgrammableChipBuilder& chip_builder_;
 };
 
 void ChipInstanceAdapter::DoEvaluate(ParseNode const & parse_node) {
@@ -327,10 +313,11 @@ void ChipInstanceAdapter::DoEvaluate(ParseNode const & parse_node) {
   */
   ParseNode::NonTerminalArray const & non_terminals = parse_node.non_terminals();
 
-  std::string const chip_type = parse_node.terminals()[1].first.value();
+  std::string const & chip_type = parse_node.terminals()[1].first.value();
 
   ChipBuilder* builder = work_bench_.builder(chip_type);
   if (!builder) {
+    assert(false);
     // Log a semantic error.  Attempt to build chip that has undefined type.
   }
 
@@ -350,39 +337,188 @@ void ChipInstanceAdapter::DoEvaluate(ParseNode const & parse_node) {
       name_end(chip_names.end());
     for (; name_iter != name_end; ++name_iter) {
       if (board.chip(*name_iter) != NULL) {
-        // TODO:  Log semantic error
+        assert(false);
+        // TODO:  Log semantic error - duplicate identifier
       }
       Chip* new_chip = builder->CreateInstance();
       new_chip->set_name(*name_iter);
       board.AddChip(new_chip);
+
+      chip_builder_.PushInstruction(new AddChipInstruction(*name_iter,
+                                                           chip_type));
     }
   }
 }
 
-class ChipBodyAdapter : public ParseNodeAdapter {
+class IdentifierReferenceAdapter : public ParseNodeAdapter {
  public:
-  ChipBodyAdapter(ChipDescription const & chip_description,
-                  WorkBench const & work_bench);
+  virtual void DoEvaluate(ParseNode const & parse_node);
+ private:
+};
+
+std::vector<std::string> ConstructArrayReferenceStrings(
+    std::vector<std::string> const & prefixes,
+    std::vector<int> const & array_references) {
+
+  std::vector<std::string> result;
+
+  std::vector<std::string>::const_iterator prefix_iter(prefixes.begin()),
+      prefix_end(prefixes.end());
+  for (; prefix_iter != prefix_end; ++prefix_iter) {
+    std::vector<int>::const_iterator array_iter(array_references.begin()),
+        array_end(array_references.end());
+    for (; array_iter != array_end; ++array_iter) {
+      std::ostringstream s;
+      s << *prefix_iter << '[' << *array_iter << ']';
+      result.push_back(s.str());
+    }
+  }
+
+  return result;
+}
+
+void IdentifierReferenceAdapter::DoEvaluate(ParseNode const & parse_node) {
+  /*
+  if (!context.ConsumeToken(Token::IDENTIFIER))
+
+  if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
+    if (!context.ConsumeNonTerminal(EvalNumberList))
+    if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
+  }
+
+  if (context.ConsumeToken(Token::DOT)) {
+    if (!context.ConsumeToken(Token::IDENTIFIER))
+    if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
+      if (!context.ConsumeNonTerminal(EvalNumberList))
+      if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
+    }
+  }
+  */
+  ParseNode::NonTerminalArray const & non_terminals = parse_node.non_terminals();
+  ParseNode::TerminalArray const & terminals = parse_node.terminals();
+  std::string const & identifer_name = terminals[0].first.value();
+  std::vector<std::string> identifier_names;
+
+  int token_offset = 1;
+  int non_terminal_offset = 0;
+
+  if (terminals[token_offset].first.type() == Token::LEFT_SQUARE_BRACE) {
+    NumberCollectionAdapter adapter;
+    adapter.DoEvaluate(*non_terminals[non_terminal_offset].first);
+
+    token_offset+=2;
+    ++non_terminal_offset;
+  }
+
+  if (terminals[token_offset].first.type() == Token::DOT) {
+    ++token_offset;
+
+    std::string const & pin_name = terminals[token_offset].first.value();
+    std::vector<std::string> pin_post_fixes;
+
+    if (terminals[token_offset].first.type() == Token::LEFT_SQUARE_BRACE) {
+      NumberCollectionAdapter pin_number_adapter;
+      pin_number_adapter.DoEvaluate(*non_terminals[non_terminal_offset].first);
+    } else {
+    }
+  }
+
+  /*
+  ParseNode::NonTerminalArray const & non_terminals = parse_node.non_terminals();
+  ParseNode::NonTerminalArray::const_iterator iter(non_terminals.begin()),
+    end(non_terminals.end());
+  for (; iter != end; ++iter) {
+    switch (iter->first->type()) {
+      case ParseNode::CHIP_REFERENCE:
+        break;
+      case ParseNode::IDENTIFIER_REFERENCE:
+        break;
+      case ParseNode::IMMEDIATE_VALUE:
+        break;
+      default:
+        assert(false);
+        break;
+    }
+  }
+  */
+}
+
+class LValueAdapter : public ParseNodeAdapter {
+ public:
+  LValueAdapter() {}
 
   virtual void DoEvaluate(ParseNode const & parse_node);
  private:
-  ChipDescription const & description_;
-  WorkBench const & work_bench_;
-  CompositeChip composite_chip_;
 };
 
-ChipBodyAdapter::ChipBodyAdapter(ChipDescription const & chip_description,
-                                 WorkBench const & work_bench)
-  : description_(chip_description),
-    work_bench_(work_bench),
-    composite_chip_(chip_description) {
+void LValueAdapter::DoEvaluate(ParseNode const & parse_node) {
+  /*
+  if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
+    if (!context.ConsumeNonTerminal(EvalIdentifierReferenceList))
+
+    if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
+    return context.Release();
+  }
+
+  if (!context.ConsumeNonTerminal(EvalIdentifierReference))
+  */
+
+
+
+
+}
+
+class LeftAssignStatementAdapter : public ParseNodeAdapter {
+ public:
+  LeftAssignStatementAdapter(WorkBench const & work_bench,
+                             CompositeChip& chip,
+                             ProgrammableChipBuilder& chip_builder)
+    : work_bench_(work_bench),
+      chip_(chip),
+      chip_builder_(chip_builder) {}
+
+  virtual void DoEvaluate(ParseNode const & parse_node);
+ private:
+  WorkBench const & work_bench_;
+  CompositeChip& chip_;
+  ProgrammableChipBuilder& chip_builder_;
+};
+
+void LeftAssignStatementAdapter::DoEvaluate(ParseNode const & parse_node) {
+  /*
+  if (!context.ConsumeNonTerminal(EvalLValue))
+  if (!context.ConsumeToken(Token::LEFT_ARROW))
+  if (!context.ConsumeNonTerminal(EvalRValue))
+  if (!context.ConsumeToken(Token::SEMI_COLON))
+  */
+
+
+
+}
+
+class ChipBodyAdapter : public ParseNodeAdapter {
+ public:
+  ChipBodyAdapter(WorkBench const & work_bench,
+                  ProgrammableChipBuilder& builder);
+
+  virtual void DoEvaluate(ParseNode const & parse_node);
+ private:
+  WorkBench const & work_bench_;
+  ProgrammableChipBuilder& chip_builder_;
+  CompositeChip composite_chip_;  // Local symbol table for composite chip
+};
+
+ChipBodyAdapter::ChipBodyAdapter(WorkBench const & work_bench,
+                                 ProgrammableChipBuilder& builder)
+  : work_bench_(work_bench),
+    chip_builder_(builder),
+    composite_chip_(*builder.description()) {
 }
 
 void ChipBodyAdapter::DoEvaluate(ParseNode const & parse_node) {
   assert(ParseNode::CHIP_BODY == parse_node.type());
 
   ParseNode::NonTerminalArray const & non_terminals = parse_node.non_terminals();
-
   ParseNode::NonTerminalArray::const_iterator iter(non_terminals.begin()),
       end(non_terminals.end());
 
@@ -390,11 +526,15 @@ void ChipBodyAdapter::DoEvaluate(ParseNode const & parse_node) {
     switch (iter->first->type()) {
       case ParseNode::CHIP_INSTANCE:
         {
-          ChipInstanceAdapter adapter(work_bench_, composite_chip_);
+          ChipInstanceAdapter adapter(work_bench_, composite_chip_, chip_builder_);
           adapter.DoEvaluate(*iter->first);
         }
         break;
       case ParseNode::WIRE_INSTANCE:
+        {
+          WireInstanceAdapter adapter(work_bench_, composite_chip_, chip_builder_);
+          adapter.DoEvaluate(*iter->first);
+        }
         break;
       case ParseNode::LEFT_ASSIGN_STATEMENT:
         break;
@@ -424,14 +564,26 @@ void ChipBodyAdapter::DoEvaluate(ParseNode const & parse_node) {
 
 }
 
+#include <utility>
+
 class ChipDefinitionAdapter : public ParseNodeAdapter {
  public:
+  ChipDefinitionAdapter(WorkBench const & work_bench,
+                        ProgrammableChipBuilder& chip_builder);
   virtual void DoEvaluate(ParseNode const & parse_node);
 
-  ChipDescription const * description() const { return description_; }
+  //ChipDescription const * description() const { return description_; }
  private:
-  ChipDescription* description_;
+  WorkBench const & work_bench_;
+  std::auto_ptr<CompositeChip> composite_chip_;  // Used as the symbol table for this chip
+  ProgrammableChipBuilder& chip_builder_;
 };
+
+ChipDefinitionAdapter::ChipDefinitionAdapter(WorkBench const & work_bench,
+                                             ProgrammableChipBuilder & chip_builder)
+  : work_bench_(work_bench),
+    chip_builder_(chip_builder) {
+}
 
 void ChipDefinitionAdapter::DoEvaluate(ParseNode const & parse_node) {
   assert(parse_node.type() == ParseNode::CHIP_DEFINITION);
@@ -460,7 +612,10 @@ void ChipDefinitionAdapter::DoEvaluate(ParseNode const & parse_node) {
     AppendNamesFromDefinition(*iter, &input_pins);
   }
 
-  description_ = ChipDescription::Create(chip_name, input_pins, output_pins);
+  ChipDescription * chip_description = ChipDescription::Create(chip_name, input_pins, output_pins);
+  chip_builder_.set_description(chip_description);
+  composite_chip_.reset(new CompositeChip(*chip_description));
+
   /*
   if (!context.ConsumeToken(Token::CHIP))
   if (!context.ConsumeToken(Token::IDENTIFIER))
@@ -473,6 +628,8 @@ void ChipDefinitionAdapter::DoEvaluate(ParseNode const & parse_node) {
   if (!context.ConsumeNonTerminal(EvalChipBody))
   if (!context.ConsumeToken(Token::RIGHT_BRACE))
   */
+
+  ChipBodyAdapter body_adapter(work_bench_, chip_builder_);
 
   // Construct the chip body
 }
@@ -500,7 +657,9 @@ void SemanticParseTreeVisitor::VisitNonTerminal(ParseNode const * parse_node,
   parse_node->VisitChildrenLeftToRight(&output_visitor);
 
   if (parse_node->type() == ParseNode::CHIP_DEFINITION) {
-    ChipDefinitionAdapter adapter;
+    WorkBench bench;
+    ProgrammableChipBuilder builder(bench);
+    ChipDefinitionAdapter adapter(bench, builder);
     adapter.DoEvaluate(*parse_node);
   }
 }

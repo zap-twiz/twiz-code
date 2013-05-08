@@ -155,8 +155,8 @@ ParseNode* EvalNumberOrRange(BufferedTokenStream& input_stream,
 // #
 // #, #, #
 // #..#, #, #..#
-ParseNode* EvalNumberList(BufferedTokenStream& input_stream,
-                          ParseErrorCollection* error_collection) {
+ParseNode* EvalNumberCollection(BufferedTokenStream& input_stream,
+                                ParseErrorCollection* error_collection) {
   ParsingContext context(input_stream, error_collection);
 
   if (!context.ConsumeNonTerminal(EvalNumberOrRange))
@@ -183,7 +183,7 @@ ParseNode* EvalIdentifierReference(BufferedTokenStream& input_stream,
     return NULL;
 
   if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
-    if (!context.ConsumeNonTerminal(EvalNumberList))
+    if (!context.ConsumeNonTerminal(EvalNumberCollection))
       return NULL;
 
     if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
@@ -195,7 +195,7 @@ ParseNode* EvalIdentifierReference(BufferedTokenStream& input_stream,
       return NULL;
 
     if (context.ConsumeToken(Token::LEFT_SQUARE_BRACE)) {
-      if (!context.ConsumeNonTerminal(EvalNumberList))
+      if (!context.ConsumeNonTerminal(EvalNumberCollection))
         return NULL;
 
       if (!context.ConsumeToken(Token::RIGHT_SQUARE_BRACE))
@@ -549,9 +549,9 @@ bool ParserEntries::ParseNumberOrRange(BufferedTokenStream& input_stream) {
   return NULL != node_;
 }
 
-bool ParserEntries::ParseNumberList(BufferedTokenStream& input_stream) {
+bool ParserEntries::ParseNumberCollection(BufferedTokenStream& input_stream) {
   InitForParsing();
-  node_ = EvalNumberList(input_stream, error_collection_);
+  node_ = EvalNumberCollection(input_stream, error_collection_);
   return NULL != node_;
 }
 

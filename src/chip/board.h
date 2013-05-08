@@ -16,14 +16,15 @@ class Board {
 
   Chip* AddChip(Chip* chip) {
     chips_.push_back(chip);
+    chip_instance_map_[chip->name()] = chip;
     return chip;
   }
   std::vector<Chip*> const & chips() const { return chips_; }
   Chip* chip(std::string const & name) const;
 
-  Wire* AddWire() {
-    Wire* wire = new Wire();
+  Wire* AddWire(Wire* wire) {
     wires_.push_back(wire);
+    wire_instance_map_[wire->name()] = wire;
     return wire;
   }
   std::vector<Wire*> const & wires() const { return wires_; }

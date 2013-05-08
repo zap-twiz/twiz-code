@@ -13,11 +13,11 @@ class ParserEntries {
   ~ParserEntries() {
   }
 
-  // Entry points
+  // Entry points - exposed for testing purposes
   bool ParseImmediateValue(BufferedTokenStream& input_stream);
   bool ParseIdentifierDefinition(BufferedTokenStream& input_stream);
   bool ParseNumberOrRange(BufferedTokenStream& input_stream);
-  bool ParseNumberList(BufferedTokenStream& input_stream);
+  bool ParseNumberCollection(BufferedTokenStream& input_stream);
   bool ParseIdentifierReference(BufferedTokenStream& input_stream);
   bool ParseChipIdentifierReference(BufferedTokenStream& input_stream);
   bool ParseChipIdentifierReferenceList(BufferedTokenStream& input_stream);

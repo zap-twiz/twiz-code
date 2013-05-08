@@ -6,7 +6,7 @@
 
 class Wire : public NamedElement {
  public:
-  Wire() {}
+  Wire(std::string const & name) : NamedElement(name) {}
   virtual ~Wire() { destroy(); }
 
   void setSource(OutputPin* pin) {
