@@ -28,6 +28,7 @@ typedef enum KeyWord {
   FALSE,
   HIGH,
   LOW,
+  TEST,
   CC_COMMENT,
   CPP_COMMENT_PREFIX,
   HEX_PREFIX,
@@ -58,6 +59,7 @@ const char* kKeyWords[] = {
   "FALSE",
   "HIGH",
   "LOW",
+  "test",
   "//",
   "/*",
   "0x",
@@ -156,6 +158,7 @@ Token TokenStream::Get() {
     case ::FALSE: token_type = Token::FALSE; scan_identifier = true; break;
     case ::HIGH: token_type = Token::HIGH; scan_identifier = true; break;
     case ::LOW: token_type = Token::LOW; scan_identifier = true; break;
+    case ::TEST: token_type = Token::TEST; scan_identifier = true; break;
     case ::CC_COMMENT:
       token_type = Token::COMMENT;
       ReadLine(input_stream_);

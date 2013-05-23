@@ -89,4 +89,29 @@ class ConnectWireInstruction : public ChipBuildInstruction {
     input_pin_name_;
 };
 
+#include <assert.h>
+
+class ConnectWireToInputInstruction : public ChipBuildInstruction {
+ public:
+   ConnectWireToInputInstruction(std::string const & wire_name,
+                                 std::string const & input_chip_name,
+                                 std::string const & input_pin_name)
+    : wire_name_(wire_name),
+      input_chip_name_(input_chip_name),
+      input_pin_name_(input_pin_name) {}
+  virtual ~ConnectWireToInputInstruction() {}
+
+  virtual void DoEvaluate(WorkBench const & bench, Board* board) {
+    assert(false);
+
+    // TODO implement
+  }
+
+ private:
+  std::string const wire_name_,
+    input_chip_name_,
+    input_pin_name_;
+};
+
+
 #endif  // INCLUDED_COMPOSITE_CHIP_BUILDER_H_

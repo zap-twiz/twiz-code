@@ -5,7 +5,7 @@
 
 class FixedLowChip : public Chip {
  public:
-  FixedLowChip(ChipDescription const* description) : Chip(description) {
+  FixedLowChip(ChipDescription const & description) : Chip(description) {
    initialize();
   }
   virtual ~FixedLowChip() {}
@@ -27,26 +27,26 @@ class FixedLowBuilder : public ChipBuilder {
 
   virtual FixedLowChip* CreateInstance();
   virtual ChipDescription const * description() const {
-    return getDescription();
+    return &getDescription();
   }
  private:
-  static ChipDescription* getDescription();
+  static ChipDescription const & getDescription();
 };
 
-ChipDescription* FixedLowBuilder::getDescription() {
+ChipDescription const & FixedLowBuilder::getDescription() {
   static ChipDescription* k_description = NULL;
   if (!k_description) {
-    std::string name = std::string("FixedLow");
+    std::string name = std::string("low");
     k_description = ChipDescription::Create(
       name,
       std::vector<std::string>(),
       CreateStrings("output", 1));
   }
-  return k_description;
+  return *k_description;
 }
 
 FixedLowChip* FixedLowBuilder::CreateInstance() {
-  FixedLowChip *instance = new FixedLowChip(description());
+  FixedLowChip *instance = new FixedLowChip(*description());
   return instance;
 }
 

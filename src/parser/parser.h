@@ -5,8 +5,6 @@
 #include "parser/parse_node.h"
 #include "parser/parser_utils.h"
 
-typedef BufferedStream<Token> BufferedTokenStream;
-
 class ParserEntries {
  public:
   ParserEntries() : node_(NULL), error_collection_(NULL) {}

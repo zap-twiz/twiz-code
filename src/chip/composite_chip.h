@@ -13,6 +13,8 @@ class CompositeChip : public Chip {
   Board& board() { return board_; }
   Board const & board() const { return board_; }
  private:
+  //std::vector<InputPin> ouput_pin_adapters_;
+  //std::vector<OutputPin> input_pin_adapters_;
 
   Board board_;
 };
@@ -21,6 +23,8 @@ CompositeChip::CompositeChip(ChipDescription const & description)
   : Chip(description) {
   addInputPins(description.num_input_ports());
   addOutputPins(description.num_output_ports());
+
+  // Add adapters for the internal pins to the board
 }
 
 #endif

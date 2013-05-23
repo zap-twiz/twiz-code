@@ -96,7 +96,7 @@ TEST_F(TokenStreamTest, SpecialTokens) {
 
 TEST_F(TokenStreamTest, ReservedWords) {
   StreamSet streams;
-  BuildStream("chip import wire TRUE FALSE HIGH LOW", &streams);
+  BuildStream("chip import wire TRUE FALSE HIGH LOW test", &streams);
   TokenStream token_stream(*streams.buffered_stream_);
   EXPECT_FALSE(token_stream.IsEOS());
 
@@ -120,6 +120,9 @@ TEST_F(TokenStreamTest, ReservedWords) {
 
   token = token_stream.Get();
   EXPECT_TRUE(Token::LOW == token.type());
+
+  token = token_stream.Get();
+  EXPECT_TRUE(Token::TEST == token.type());
 }
 
 TEST_F(TokenStreamTest, Identifiers) {
@@ -142,7 +145,7 @@ TEST_F(TokenStreamTest, Identifiers) {
 
 TEST_F(TokenStreamTest, IdentifiersReserved) {
   StreamSet streams;
-  BuildStream("chipX importX wireX TRUEX FALSEX HIGHX LOWX", &streams);
+  BuildStream("chipX importX wireX TRUEX FALSEX HIGHX LOWX testX", &streams);
   TokenStream token_stream(*streams.buffered_stream_);
   EXPECT_FALSE(token_stream.IsEOS());
 
@@ -173,6 +176,10 @@ TEST_F(TokenStreamTest, IdentifiersReserved) {
   token = token_stream.Get();
   EXPECT_TRUE(Token::IDENTIFIER == token.type());
   EXPECT_TRUE(token.value() == "LOWX");
+
+  token = token_stream.Get();
+  EXPECT_TRUE(Token::IDENTIFIER == token.type());
+  EXPECT_TRUE(token.value() == "testX");
 
   streams.string_stream_->clear();
   streams.string_stream_->str("_chip");

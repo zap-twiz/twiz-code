@@ -34,6 +34,7 @@ class Token {
     NUMBER_BINARY,
     STRING,
     COMMENT,
+    TEST,
     NUM_TOKEN_TYPES
   };
 

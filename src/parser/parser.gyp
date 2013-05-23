@@ -25,10 +25,15 @@
       'target_name': 'parser_test',
       'type': 'executable',
       'sources': [
+        'stream_set.cc',
+        'stream_set.h',
+        'parser_test.cc',
         'parser_utils_test.cc',
       ],
       'dependencies': [
         'parser',
+        '../base/base.gyp:base',
+        '../lexer/lexer.gyp:lexer',
         '../testing/gtest.gyp:gtestmain',
         '../testing/gtest.gyp:gtest'
       ],
