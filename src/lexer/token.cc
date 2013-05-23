@@ -30,4 +30,5 @@ char const * const Token::kTokenTypeNames[] = {
   "NUMBER_STRING",
   "STRING",
   "COMMENT",
+  "TEST"
 };

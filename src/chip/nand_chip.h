@@ -10,7 +10,7 @@
 template <int WAY>
 class NandChip : public Chip {
  public:
-  NandChip(ChipDescription const * description) : Chip(description) {
+  NandChip(ChipDescription const & description) : Chip(description) {
     initialize();
   }
   virtual ~NandChip() {}
@@ -58,7 +58,11 @@ ChipDescription* NandBuilder<WAY>::GetDescription() {
   static ChipDescription* k_description = NULL;
   if (!k_description) {
     std::ostringstream s;
-    s << std::string("Nand") << WAY;
+    if (2 != WAY ) {
+      s << std::string("nand") << WAY;
+    } else {
+      s << std::string("nand");
+    }
     std::string name = s.str();
     k_description = ChipDescription::Create(
       name,
@@ -70,7 +74,7 @@ ChipDescription* NandBuilder<WAY>::GetDescription() {
 
 template <int WAY>
 NandChip<WAY>* NandBuilder<WAY>::CreateInstance() {
-  NandChip<WAY> *instance = new NandChip<WAY>(description());
+  NandChip<WAY> *instance = new NandChip<WAY>(*description());
   return instance;
 }
 

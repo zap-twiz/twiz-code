@@ -232,6 +232,9 @@ ParseNode* EvalChipIdentifierReference(BufferedTokenStream& input_stream,
   return context.Release();
 }
 
+// chip(...)
+// identifier
+// immediate
 ParseNode* EvalChipIdentifierReferenceList(
     BufferedTokenStream& input_stream,
     ParseErrorCollection* error_collection) {
@@ -350,7 +353,7 @@ ParseNode* EvalRValue(BufferedTokenStream& input_stream,
     return context.Release();
   }
 
-  if (!context.ConsumeNonTerminal(EvalChipIdentifierReferenceList))
+  if (!context.ConsumeNonTerminal(EvalChipIdentifierReference))
     return NULL;
 
   context.node()->set_type(ParseNode::RVALUE);
@@ -465,7 +468,13 @@ ParseNode* EvalChipDefinition(BufferedTokenStream& input_stream,
   if (!context.ConsumeToken(Token::RIGHT_ARROW))
     return NULL;
 
-  if (!context.ConsumeNonTerminal(EvalIdentifierDefinition))
+  if (!context.ConsumeToken(Token::LEFT_PAREN))
+    return NULL;
+
+  if (!context.ConsumeNonTerminal(EvalIdentifierList))
+    return NULL;
+
+  if (!context.ConsumeToken(Token::RIGHT_PAREN))
     return NULL;
 
   if (!context.ConsumeToken(Token::LEFT_BRACE))

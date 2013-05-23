@@ -26,6 +26,7 @@ class ChipDescription : public NamedElement {
   }
 
   int has_input_port(std::string const & name) const {
+    // TODO: O(N)
     PortOffsetMap::const_iterator find(input_port_mapping_.find(name));
     if (find != input_port_mapping_.end()) {
       return find->second;
@@ -35,6 +36,7 @@ class ChipDescription : public NamedElement {
   }
 
   int has_output_port(std::string const & name) const {
+    // TODO: O(N)
     PortOffsetMap::const_iterator find(output_port_mapping_.find(name));
     if (find != output_port_mapping_.end()) {
       return find->second;

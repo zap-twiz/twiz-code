@@ -5,7 +5,18 @@
 #include <algorithm>
 
 class Wire;
-class OutputPin {
+
+class OutputPin;
+class InputPin;
+class Pin : public NamedElement {
+ public:
+  virtual ~Pin() {}
+
+  virtual OutputPin* AsOutput() { return NULL; }
+  virtual InputPin* AsInput() { return NULL; }
+};
+
+class OutputPin : public Pin {
  public:
   enum PinState {
     kLow = 0,
@@ -16,6 +27,8 @@ class OutputPin {
   };
 
   OutputPin() : state_(kUnknown) {};
+
+  virtual OutputPin* AsOutput() { return this; }
 
   PinState& state() { return state_; }
   PinState const & state() const { return state_; }
@@ -43,9 +56,11 @@ bool IsLow(OutputPin::PinState const state) {
   return !IsHigh(state);
 }
 
-class InputPin {
+class InputPin : public Pin {
  public:
   InputPin() : wire_(0) {}
+
+  virtual InputPin* AsInput() { return this; }
 
   void setWire(Wire* wire) { wire_ = wire; }
   Wire* wire() const { return wire_; }

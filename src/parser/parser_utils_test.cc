@@ -1,38 +1,12 @@
 #include "gtest/gtest.h"
 
-#include "parser/parser_utils.h"
-
-#include "lexer/line_counting_stream.h"
 #include "lexer/token_stream.h"
-#include "streams/iostream.h"
-
-#include <sstream>
+#include "parser/parser_utils.h"
+#include "parser/stream_set.h"
 
 namespace {
 
 class ParserUtilsTest : public ::testing::Test {
- public:
-  struct StreamSet {
-    std::stringstream* string_stream_;
-    IoStream* io_stream_;
-    LineCountingStream* buffered_stream_;
-    TokenStream* token_stream_;
-
-    ~StreamSet() {
-      delete buffered_stream_;
-      delete io_stream_;
-      delete string_stream_;
-    }
-  };
-
-  static void BuildStream(std::string const & input,
-                          StreamSet* stream_set) {
-    stream_set->string_stream_ = new std::stringstream(input);
-    stream_set->io_stream_ = new IoStream(stream_set->string_stream_);
-    stream_set->buffered_stream_ =
-        new LineCountingStream(*stream_set->io_stream_);
-    stream_set->token_stream_ = new TokenStream(*stream_set->buffered_stream_);
-  }
 };
 
 TEST_F(ParserUtilsTest, IsTokenIgnored) {

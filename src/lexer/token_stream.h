@@ -3,6 +3,7 @@
 
 #include "lexer/token.h"
 #include "streams/stream.h"
+#include "streams/buffered_stream.h"
 
 class LineCountingStream;
 
@@ -24,5 +25,7 @@ class TokenStream : public Stream<Token> {
  private:
   InputStream& input_stream_;
 };
+
+typedef BufferedStream<Token> BufferedTokenStream;
 
 #endif // INCLUDED_LEXER_TOKEN_STREAM_H_

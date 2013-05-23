@@ -5,13 +5,13 @@
 
 import "chip.thd";
 
-chip not(a) -> out {
-  chip unused;
+chip not(a) -> (out) {
+  chip nand unused;
   out<-nand(a, HIGH);
 }
 
 /*
-chip not2(a[2]) -> out[2] {
+chip not2(a[2]) -> (out[2]) {
   out<-[ not(a[0]), not(a[1]) ];
 }
 
@@ -138,6 +138,17 @@ chip demux8(sel[3], in) -> out[8] {
   out<-[ select4(sel[2], sel0, [LOW, LOW, LOW, LOW]),
          select4(sel[2], [LOW, LOW, LOW, LOW], sel0) ];  
 }
+*/
+
+/*
+test test_name {
+  nand( LOW, LOW ) -> [ HIGH ]
+
+  // Sequence of states for combinational logic
+  flip_flop {
+    ( Q: LOW, _Q: HIGH ) -> [HIGH, HIGH]
+    ( identifier-list <- HIGH, )
+    }
 */
 
 
