@@ -1,6 +1,7 @@
 #ifndef INCLUDED_CHIP_H_
 #define INCLUDED_CHIP_H_
 
+#include "chip_description.h"
 #include "named_element.h"
 #include "pin.h"
 
@@ -23,6 +24,24 @@ class Chip : public NamedElement {
   std::vector<InputPin>& input_pins() { return input_pins_; }
   std::vector<OutputPin>& output_pins() { return output_pins_; }
 
+  InputPin* GetInputPinByName(std::string const & name) {
+    for (int x = 0; x < description_->num_input_ports(); ++x) {
+      if (description_->input_port_name(x) == name) {
+        return &input_pins_[x];
+      }
+    }
+    return NULL;
+  }
+
+  OutputPin* GetOutputPinByName(std::string const & name) {
+    for (int x = 0; x < description_->num_output_ports(); ++x) {
+      if (description_->output_port_name(x) == name) {
+        return &output_pins_[x];
+      }
+    }
+    return NULL;
+  }
+
  protected:
   void addInputPins(int count) {
     input_pins_.resize(count);
@@ -38,6 +57,5 @@ class Chip : public NamedElement {
 
   ChipDescription const * description_;
 };
-
 
 #endif  // INCLUDED_CHIP_H_

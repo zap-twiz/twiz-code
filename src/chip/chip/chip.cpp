@@ -129,8 +129,6 @@ FixedLowChip* FixedLowBuilder::CreateInstance() {
   return instance;
 }
 
-
-
 class Board {
  public:
   Board() {}
@@ -144,12 +142,34 @@ class Board {
   }
   std::vector<Chip*> const & chips() const { return chips_; }
 
+  Chip* GetChipByName(std::string const & name) {
+    std::vector<Chip*>::iterator iter(chips_.begin()), end(chips_.end());
+    for (; iter != end; ++iter) {
+      if ((*iter)->name() == name) {
+        return *iter;
+      }
+    }
+
+    return NULL;
+  }
+
   Wire* AddWire() {
     Wire* wire = new Wire();
     wires_.push_back(wire);
     return wire;
   }
   std::vector<Wire*> const & wires() const { return wires_; }
+
+  Wire* GetWireByName(std::string const & name) {
+    std::vector<Wire*>::iterator iter(wires_.begin()), end(wires_.end());
+    for (; iter != end; ++iter) {
+      if ((*iter)->name() == name) {
+        return *iter;
+      }
+    }
+    return NULL;
+  }
+
  private:
   void destroy() {
     {
@@ -172,24 +192,39 @@ class Board {
 
 class CompositeChip : public Chip {
  public:
-  CompositeChip(ChipDescription* description);
+  CompositeChip(ChipDescription const * description);
   virtual ~CompositeChip() {}
 
   Board& board() { return board_; }
   Board const & board() const { return board_; }
+
+  OutputPin* input_pin_adapter(int pin) {
+    return &input_pin_adapters_[pin];
+  }
+
+  InputPin* output_pin_adapter(int pin) {
+    return &output_pin_adapters_[pin];
+  }
+
  private:
+
+  std::vector<InputPin> output_pin_adapters_;
+  std::vector<OutputPin> input_pin_adapters_;
 
   Board board_;
 };
 
-CompositeChip::CompositeChip(ChipDescription* description) : Chip(description) {
+CompositeChip::CompositeChip(ChipDescription const * description) : Chip(description) {
   addInputPins(description->num_input_ports());
   addOutputPins(description->num_output_ports());
+
+  output_pin_adapters_.resize(description->num_output_ports());
+  input_pin_adapters_.resize(description->num_input_ports());
 }
 
 class CompositeChipBuilder : public ChipBuilder {
  public:
-  CompositeChipBuilder(ChipDescription* description,
+  CompositeChipBuilder(ChipDescription const* description,
                        WorkBench& bench)
     : description_(description),
       bench_(bench) {}
@@ -202,7 +237,7 @@ class CompositeChipBuilder : public ChipBuilder {
   WorkBench* bench() { return &bench_; }
 
  private:
-  ChipDescription* description_;
+  ChipDescription const * description_;
   WorkBench& bench_;
 };
 
@@ -247,21 +282,65 @@ class AddWireInstruction : public ChipBuildInstruction {
 
 class ConnectWireInstruction : public ChipBuildInstruction {
  public:
-  ConnectWireInstruction(Wire* wire, InputPin* input_pin, OutputPin* output_pin)
-    : input_pin_(input_pin),
+   ConnectWireInstruction(std::string const & wire,
+                          std::string const & output_chip,
+                          std::string const & output_pin,
+                          std::string const & input_chip,
+                          std::string const & input_pin)
+    : wire_(wire),
+      output_chip_(output_chip),
       output_pin_(output_pin),
-      wire_(wire) {}
+      input_chip_(input_chip),
+      input_pin_(input_pin) {
+   }
   virtual ~ConnectWireInstruction() {}
 
-  virtual void DoEvaluate(WorkBench& bench, Board* board) {
-    wire_->setSource(output_pin_);
-    wire_->addConnection(input_pin_);
-  }
+  virtual void DoEvaluate(WorkBench& bench, Board* board);
 
  private:
-  InputPin *input_pin_;
-  OutputPin *output_pin_;
-  Wire *wire_;
+  std::string wire_;
+  std::string output_chip_;
+  std::string output_pin_;
+  std::string input_chip_;
+  std::string input_pin_;
+};
+
+void ConnectWireInstruction::DoEvaluate(WorkBench& bench, Board* board) {
+  Wire* wire = board->GetWireByName(wire_);
+  Chip *output = board->GetChipByName(output_chip_);
+  Chip *input = board->GetChipByName(input_chip_);
+
+  InputPin *input_pin = input->GetInputPinByName(input_pin_);
+  OutputPin *output_pin = output->GetOutputPinByName(output_pin_);
+
+  wire->setSource(output_pin);
+  wire->addConnection(input_pin);
+}
+
+class ConnectInternalPinInstruction : public ChipBuildInstruction {
+ public:
+   ConnectInternalPinInstruction(std::string const & wire,
+                                 std::string const & input_chip,
+                                 std::string const & input_pin,
+                                 int internal_pin,
+                                 bool is_output)
+    : wire_(wire),
+      input_chip_(input_chip),
+      input_pin_(input_pin),
+      internal_pin_(internal_pin),
+      is_output_(is_output) {
+   }
+
+  virtual ~ConnectInternalPinInstruction() {}
+
+  virtual void DoEvaluate(WorkBench& bench, Board* board);
+
+ private:
+  std::string wire_;
+  std::string input_chip_;
+  std::string input_pin_;
+  int internal_pin_;
+  bool is_output_;
 };
 
 class NotBuilder : public ChipBuilder {
@@ -296,7 +375,7 @@ ChipDescription* NotBuilder::GetDescription() {
 
 class ProgrammableChipBuilder : public CompositeChipBuilder {
  public:
-  ProgrammableChipBuilder(ChipDescription* description,
+  ProgrammableChipBuilder(ChipDescription const * description,
                           WorkBench& bench)
     : CompositeChipBuilder(description, bench) {}
 
@@ -313,7 +392,7 @@ class ProgrammableChipBuilder : public CompositeChipBuilder {
 };
 
 ProgrammableChipBuilder::~ProgrammableChipBuilder() {
-  std::vector<ChipBuildInstruction*>::iterator iter(operation_stack_.begin),
+  std::vector<ChipBuildInstruction*>::iterator iter(operation_stack_.begin()),
       end(operation_stack_.end());
   for (; iter != end; ++iter) {
     delete *iter;
@@ -322,30 +401,30 @@ ProgrammableChipBuilder::~ProgrammableChipBuilder() {
 
 CompositeChip* ProgrammableChipBuilder::CreateInstance() {
   CompositeChip* chip = new CompositeChip(description());
-  Board* board = chip->board();
+  Board& board = chip->board();
 
-  WorkBench* bench = bench();
+  WorkBench* work_bench = bench();
 
   std::vector<ChipBuildInstruction*>::iterator iter(operation_stack_.begin()),
     end(operation_stack_.end());
   for (; iter != end; ++iter) {
-    iter->DoEvaluate(*bench, board);
+    (*iter)->DoEvaluate(*work_bench, &board);
   }
 
   return chip;
 }
 
-
 #include <iostream>
-
 
 int _tmain(int argc, _TCHAR* argv[]) {
   WorkBench bench;
 
   NandBuilder<3>* nand_builder = new NandBuilder<3>();
+  NandBuilder<2>* nand_builder2 = new NandBuilder<2>();
   FixedLowBuilder* low_builder = new FixedLowBuilder();
   NotBuilder* not_builder = new NotBuilder();
   bench.RegisterBuilder(nand_builder);
+  bench.RegisterBuilder(nand_builder2);
   bench.RegisterBuilder(low_builder);
   bench.RegisterBuilder(not_builder);
 
@@ -353,10 +432,27 @@ int _tmain(int argc, _TCHAR* argv[]) {
   FixedLowChip *low = low_builder->CreateInstance();
   CompositeChip *not = not_builder->CreateInstance();
 
+  ChipDescription const * description = not_builder->description();
+  ProgrammableChipBuilder *composite_builder = new ProgrammableChipBuilder(description, bench);
+
+  composite_builder->PushInstruction(new AddChipInstruction("nand", "Nand2"));
+  composite_builder->PushInstruction(new AddWireInstruction("input"));
+  composite_builder->PushInstruction(new AddChipInstruction("low", "FixedLow"));
+  composite_builder->PushInstruction(new AddWireInstruction("unnamed"));
+  composite_builder->PushInstruction(new ConnectWireInstruction("unnamed",
+                                                                "low",
+                                                                "output0",
+                                                                "nand",
+                                                                "input0"));
+
+  CompositeChip *programmableNot = composite_builder->CreateInstance();
+
+
   Board board;
   board.AddChip(nand);
   board.AddChip(low);
   board.AddChip(not);
+  board.AddChip(programmableNot);
 
   Wire *w1 = board.AddWire(),
       *w2 = board.AddWire(),
