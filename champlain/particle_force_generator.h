@@ -25,17 +25,27 @@ class ParticleGravityForce : public ParticleForceGenerator {
   float constant_;
 };
 
-class Spring {
+class ParticleAnchoredSpringForce : public ParticleForceGenerator {
  public:
+  ParticleAnchoredSpringForce(Vector3f const & point, float restLength, float constant)
+    : anchorPoint_(point), restLength_(restLength), constant_(constant) {}
 
-};
+  virtual void applyForce(Particle* particle, float duration);
 
-class ParticleSpringForce : public ParticleForceGenerator {
- public:
+ private:
+  Vector3f anchorPoint_;
+  float restLength_;
+  float constant_;
 };
 
 class ParticleDampingForce : public ParticleForceGenerator {
  public:
+  ParticleDampingForce(float k1, float k2) : k1_(k1), k2_(k2) {}
+  virtual void applyForce(Particle* particle, float duration);
+
+ private:
+  float k1_;
+  float k2_;
 };
 
 // TODO buoyancy, etc ....

@@ -107,7 +107,7 @@ void MyGLWidget::onTick()
 //    emit setZRotation(zRot + 1);
   //emit updateGL();
 
-  simulation_->Step(0.05);
+  simulation_->Step(0.005);
   //paintGL();
 }
 

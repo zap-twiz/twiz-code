@@ -16,21 +16,10 @@ class Simulation {
   virtual void Step(float duration);
 
   virtual ParticleSystem& getSystem() = 0;
-
-  ParticleForceGenerator* AddForceGenerator(ParticleForceGenerator* generator);
-  void LinkForceGenerator(Particle* particle, ParticleForceGenerator* generator);
-
- protected:
-  struct ForceRegistration {
-    Particle* particle;
-    ParticleForceGenerator* generator;
-  };
-
-  std::vector<ForceRegistration> forceMapping_;
-  std::vector<ParticleForceGenerator*> forceGenerators_;
 };
 
 #include "particle.h"
+#include "particle_system.h"
 
 class FireworksSimulation : public Simulation{
  public:

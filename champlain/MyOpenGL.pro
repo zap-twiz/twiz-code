@@ -21,7 +21,10 @@ SOURCES += main.cpp\
     gl_geometry.cpp \
     random.cpp \
     simulation.cpp \
-    particle_force_generator.cpp
+    particle_force_generator.cpp \
+    particle_contact.cpp \
+    particle_system.cpp \
+    particle_contact_generator.cpp
 
 HEADERS  += window.h \
     myglwidget.h \
@@ -32,6 +35,9 @@ HEADERS  += window.h \
     body.h \
     gl_geometry.h \
     random.h \
-    particle_force_generator.h
+    particle_force_generator.h \
+    particle_contact.h \
+    particle_system.h \
+    particle_contact_generator.h
 
 FORMS    += window.ui
