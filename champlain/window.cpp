@@ -22,8 +22,8 @@ Window::Window(QWidget *parent) :
 
     connect(ui->closeButton, SIGNAL(clicked()), this, SLOT(close()));
     m_timer = new QTimer( this );
-    //connect( m_timer, SIGNAL(timeout()), this, SLOT(timeOutSlot()) );
-    //m_timer->start( 16 );
+    connect( m_timer, SIGNAL(timeout()), this, SLOT(timeOutSlot()) );
+    m_timer->start( 16 );
 }
 
 Window::~Window()

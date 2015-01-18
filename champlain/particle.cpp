@@ -27,16 +27,5 @@ void Particle::ApplyForce() {
   acceleration_ = force_ * (1.0f / mass_);
 }
 
-Particle* ParticleSystem::NewParticle() {
-  particles_.push_back(Particle());
-  return &particles_[particles_.size() - 1];
-}
-
-void ParticleSystem::TimeStep(float duration) {
-  auto iter = particles_.begin(), end = particles_.end();
-  for (; iter != end; ++iter) {
-    iter->Integrate(duration);
-  }
-}
 
 

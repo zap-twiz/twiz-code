@@ -31,6 +31,14 @@ class Particle {
   float& mass() { return mass_; }
   float mass() const { return mass_; }
 
+  float inverse_mass() const {
+    if (mass_ > 0) {
+      return 1.0f / mass_;
+    } else {
+      return 0.0f;
+    }
+  }
+
   bool hasFiniteMass() const { return mass_ >= 0.0f; }
 
  protected:
@@ -46,23 +54,6 @@ class Particle {
   float mass_;
 };
 
-#include <vector>
-
-class ParticleSystem {
- public:
-  ParticleSystem() {}
-  virtual ~ParticleSystem() {}
-
-  //std::vector<Particle>& particles()
-  Particle* NewParticle();
-
-  void TimeStep(float duration);
-
-  std::vector<Particle>& particles() { return particles_; }
-
- private:
-  std::vector<Particle> particles_;
-};
 
 class ParticleGenerator {
  public:
