@@ -21,19 +21,40 @@ class Simulation {
 #include "particle.h"
 #include "particle_system.h"
 
-class FireworksSimulation : public Simulation{
+class BaseSimulation : public Simulation {
  public:
-  FireworksSimulation() {}
-  virtual ~FireworksSimulation() {}
+  BaseSimulation();
+  virtual ~BaseSimulation();
 
-  virtual void Reset();
   virtual void Pause();
-  virtual void Step(float duration);
 
   virtual ParticleSystem& getSystem() { return system_; }
 
- private:
+ protected:
   ParticleSystem system_;
+  ParticleContactResolver* resolver_;
+};
+
+class ParticleContactResolver;
+
+class FireworksSimulation : public BaseSimulation {
+ public:
+  virtual void Reset();
+};
+
+class SimpleGravitySimulation : public BaseSimulation {
+ public:
+  virtual void Reset();
+};
+
+class MultiRodSimulation : public BaseSimulation {
+ public:
+  virtual void Reset();
+};
+
+class TetrahedronSimulation : public BaseSimulation {
+ public:
+  virtual void Reset();
 };
 
 #endif // SIMULATION_H

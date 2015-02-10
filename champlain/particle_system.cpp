@@ -1,5 +1,6 @@
 #include "particle_system.h"
 
+#include "particle_contact_generator.h"
 #include "particle_force_generator.h"
 
 ParticleSystem::~ParticleSystem() {
@@ -18,7 +19,20 @@ Particle* ParticleSystem::NewParticle() {
 }
 
 void ParticleSystem::TimeStep(float duration) {
+  UpdateForces(duration);
+  Integrate(duration);
+  ProcessCollisions(duration);
+}
 
+void ParticleSystem::Integrate(float duration) {
+  auto iter = particles_.begin();
+  auto end = particles_.end();
+  for (; iter != end; ++iter) {
+    iter->Integrate(duration);
+  }
+}
+
+void ParticleSystem::UpdateForces(float duration) {
   // Reset all particule accumulators
   auto iter(particles_.begin()), end(particles_.end());
   for (; iter != end; ++iter) {
@@ -29,12 +43,22 @@ void ParticleSystem::TimeStep(float duration) {
   for (; regIter != regEnd; ++regIter) {
     regIter->generator->applyForce(regIter->particle, duration);
   }
+}
 
-  iter = particles_.begin();
-  end = particles_.end();
+void ParticleSystem::ProcessCollisions(float duration) {
+
+  // Note that this may free memory ...
+  contacts_.resize(0, ParticleContact(NULL, NULL, 0, 0, Vector3f(0, 0, 0)));
+
+  auto iter = contact_generators_.begin();
+  auto end = contact_generators_.end();
   for (; iter != end; ++iter) {
-    iter->Integrate(duration);
+    (*iter)->AddContacts(*this);
   }
+
+  // Heuristic - set the maximum number of passes to 10x the number of collisions!
+  resolver_->SetPasses(contacts_.size()*10);
+  resolver_->ResolveContacts(&contacts_[0], contacts_.size(), duration);
 }
 
 ParticleForceGenerator* ParticleSystem::AddForceGenerator(ParticleForceGenerator *generator) {

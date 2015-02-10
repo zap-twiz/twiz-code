@@ -1,6 +1,9 @@
 #ifndef BODY_H
 #define BODY_H
 
+/**
+ * @brief Presently unused.
+ */
 class BoundingBox {
  public:
 };

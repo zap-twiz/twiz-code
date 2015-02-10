@@ -73,7 +73,10 @@ void MyGLWidget::setZRotation(int angle)
 void MyGLWidget::initializeGL()
 {
 
-  simulation_ = new FireworksSimulation();
+//  simulation_ = new FireworksSimulation();
+//  simulation_ = new MultiRodSimulation();
+//  simulation_ = new SimpleGravitySimulation();
+  simulation_ = new TetrahedronSimulation();
   simulation_->Reset();
 
 
@@ -107,7 +110,10 @@ void MyGLWidget::onTick()
 //    emit setZRotation(zRot + 1);
   //emit updateGL();
 
-  simulation_->Step(0.005);
+  for (int x= 0; x < 16; ++x) {
+    simulation_->Step(0.001);
+  }
+
   //paintGL();
 }
 
@@ -191,16 +197,36 @@ void drawCube()
 void MyGLWidget::draw()
 {    
 
+    glPushMatrix();
     Q_ASSERT(GL_NO_ERROR == glGetError());
     glColorMaterial(GL_FRONT, GL_DIFFUSE);
 
     glEnable(GL_COLOR_MATERIAL);
-    //    drawCube();
 
+
+    glDisable(GL_LIGHTING);
+    // prototypeing work for display of forces ....
     glBegin(GL_LINES);
+      glColor3f(1.0f, 0.0f, 0.0f);
       glVertex3f(0.0f, 0.0f, 0.0f);
       glVertex3f(1.0f, 0.0f, 0.0f);
     glEnd();
+
+    glBegin(GL_LINES);
+      glColor3f(0.0f, 1.0f, 0.0f);
+      glVertex3f(0.0f, 0.0f, 0.0f);
+      glVertex3f(0.0f, 1.0f, 0.0f);
+    glEnd();
+
+    glBegin(GL_LINES);
+      glColor3f(0.0f, 0.0f, 1.0f);
+      glVertex3f(0.0f, 0.0f, 0.0f);
+      glVertex3f(0.0f, 0.0f, 1.0f);
+    glEnd();
+
+    glEnable(GL_LIGHTING);
+
+    glColor3f(1.0f, 1.0f, 1.0f);
 
     ParticleSystem& system = simulation_->getSystem();
 
@@ -209,50 +235,13 @@ void MyGLWidget::draw()
       glPushMatrix();
       Vector3f position = particle.position();
       glTranslatef(position.x(), position.y(), position.z());
+
+      //std::cout << "Position y " << position.y() << std::endl;
       GLSphere sphere(0.25);
       sphere.draw();
       glPopMatrix();
     }
 
+    glPopMatrix();
     return;
-    GLSphere cube(0.25);
-    cube.draw();
-
-    GLSphere sphere(0.5);
-    glTranslatef(5, 5, -20);
-    sphere.draw();
-
-    return;
-    qglColor(Qt::green);
-    glBegin(GL_QUADS);
-        glNormal3f(0,0,-1);
-        glVertex3f(-1,-1,0);
-        glVertex3f(-1,1,0);
-        glVertex3f(1,1,0);
-        glVertex3f(1,-1,0);
-    glEnd();
-    glBegin(GL_TRIANGLES);
-        glNormal3f(0,-1,0.707);
-        glVertex3f(-1,-1,0);
-        glVertex3f(1,-1,0);
-        glVertex3f(0,0,1.2);
-    glEnd();
-    glBegin(GL_TRIANGLES);
-        glNormal3f(1,0, 0.707);
-        glVertex3f(1,-1,0);
-        glVertex3f(1,1,0);
-        glVertex3f(0,0,1.2);
-    glEnd();
-    glBegin(GL_TRIANGLES);
-        glNormal3f(0,1,0.707);
-        glVertex3f(1,1,0);
-        glVertex3f(-1,1,0);
-        glVertex3f(0,0,1.2);
-    glEnd();
-    glBegin(GL_TRIANGLES);
-        glNormal3f(-1,0,0.707);
-        glVertex3f(-1,1,0);
-        glVertex3f(-1,-1,0);
-        glVertex3f(0,0,1.2);
-    glEnd();
 }

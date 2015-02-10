@@ -24,7 +24,8 @@ SOURCES += main.cpp\
     particle_force_generator.cpp \
     particle_contact.cpp \
     particle_system.cpp \
-    particle_contact_generator.cpp
+    particle_contact_generator.cpp \
+    particle_link.cpp
 
 HEADERS  += window.h \
     myglwidget.h \
@@ -38,6 +39,7 @@ HEADERS  += window.h \
     particle_force_generator.h \
     particle_contact.h \
     particle_system.h \
-    particle_contact_generator.h
+    particle_contact_generator.h \
+    particle_link.h
 
 FORMS    += window.ui
