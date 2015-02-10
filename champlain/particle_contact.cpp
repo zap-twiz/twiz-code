@@ -141,8 +141,6 @@ void MultiPassParticleContactResolver::ResolveContacts(ParticleContact *contacts
       break;
     }
 
-    //std::cout << "Resolving " << candidate << std::endl;
-
     Particle *actor_a = contacts[candidate].actorA();
     Particle *actor_b = contacts[candidate].actorB();
 
@@ -151,6 +149,7 @@ void MultiPassParticleContactResolver::ResolveContacts(ParticleContact *contacts
 
     // Process the best candidate
     contacts[candidate].Resolve(duration);
+
     // Update all of the other collisions
     for (int x = 0; x < num_contacts; ++x) {
       // Note - this loop includes the contact that was just resolved!

@@ -8,17 +8,43 @@ class Matrix3f {
   static Matrix3f const kZero;
   static Matrix3f const kIdentity;
 
-  explicit Matrix3f() {}
+  Matrix3f() {}
   explicit Matrix3f(float a11, float a12, float a13,
                     float a21, float a22, float a23,
                     float a31, float a32, float a33);
-  explicit Matrix3f(Matrix3f const &rhs);
+  Matrix3f(Matrix3f const &rhs);
+
+  Matrix3f& operator=(Matrix3f const & rhs);
+  bool operator==(Matrix3f const & rhs) const;
+
+  static Matrix3f RotationX(float theta);
+  static Matrix3f RotationY(float theta);
+  static Matrix3f RotationZ(float theta);
+
+  Matrix3f& operator+=(Matrix3f const & rhs);
+  Matrix3f& operator-=(Matrix3f const & rhs);
+
+  float det() const;
+  Matrix3f inverse() const;
+  Matrix3f transpose() const;
+
+  Matrix3f& operator*=(Matrix3f const & rhs);
+  Matrix3f& operator*=(float rhs);
+
+  Vector3f operator*(Vector3f const & rhs) const;
 
  private:
   float m_[9];
 };
 
-class Matrix34f {
+Matrix3f operator+(Matrix3f const & lhs, Matrix3f const & rhs);
+Matrix3f operator-(Matrix3f const & lhs, Matrix3f const & rhs);
+
+Matrix3f operator*(Matrix3f const & lhs, Matrix3f const & rhs);
+Matrix3f operator*(Matrix3f const & lhs, Vector3f const & rhs);
+Matrix3f operator*(Matrix3f const & lhs, float rhs);
+
+class AffineTransform {
 
  private:
   Matrix3f orientation_;
