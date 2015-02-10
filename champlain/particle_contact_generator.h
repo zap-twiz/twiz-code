@@ -9,7 +9,7 @@ class ParticleContactGenerator {
   virtual void AddContacts(ParticleSystem& system) = 0;
 };
 
-class ParticleGroundContactGenerator {
+class ParticleGroundContactGenerator : public ParticleContactGenerator {
  public:
   virtual void AddContacts(ParticleSystem& system);
 };

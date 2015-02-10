@@ -8,6 +8,7 @@
 
 class ParticleForceGenerator;
 class ParticleContactGenerator;
+class ParticleContactResolver;
 
 class ParticleSystem {
  public:
@@ -28,8 +29,11 @@ class ParticleSystem {
   void LinkForceGenerator(Particle* particle, ParticleForceGenerator* generator);
 
   ParticleContactGenerator* AddContactGenerator(ParticleContactGenerator* generator);
-
   void AddContact(ParticleContact const & contact);
+
+  void SetParticleContactResolver(ParticleContactResolver* resolver) {
+    resolver_ = resolver;
+  }
 
  protected:
   struct ForceRegistration {
@@ -43,6 +47,15 @@ class ParticleSystem {
 
   std::vector<ParticleContact> contacts_;
   std::vector<Particle> particles_;
+
+  ParticleContactResolver* resolver_;
+
+ private:
+
+  // Worker routines for simulation evaluation.
+  void Integrate(float duration);
+  void UpdateForces(float duration);
+  void ProcessCollisions(float duration);
 };
 
 #endif // PARTICLESYSTEM_H

@@ -38,7 +38,7 @@ Vector3f& Vector3f::operator*=(float scalar) {
   return *this;
 }
 
-float Vector3f::dot(Vector3f const &rhs) const{
+float Vector3f::dot(Vector3f const &rhs) const {
   float sum = 0.0f;
   sum += x_ * rhs.x_;
   sum += y_ * rhs.y_;

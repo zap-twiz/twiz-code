@@ -28,3 +28,5 @@ Matrix3f::Matrix3f(Matrix3f const &rhs) {
   m_[7] = rhs.m_[7];
   m_[8] = rhs.m_[8];
 }
+
+

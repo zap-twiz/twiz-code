@@ -3,6 +3,9 @@
 
 #include "vector3f.h"
 
+/**
+ * @brief Utility class for generating random numbers.
+ */
 class Random {
  public:
   Random();
