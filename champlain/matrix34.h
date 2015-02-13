@@ -21,6 +21,8 @@ class Matrix3f {
   static Matrix3f RotationY(float theta);
   static Matrix3f RotationZ(float theta);
 
+  static Matrix3f FromAxisAngle(Vector3f const & axis, float angle);
+
   Matrix3f& operator+=(Matrix3f const & rhs);
   Matrix3f& operator-=(Matrix3f const & rhs);
 
@@ -41,10 +43,12 @@ Matrix3f operator+(Matrix3f const & lhs, Matrix3f const & rhs);
 Matrix3f operator-(Matrix3f const & lhs, Matrix3f const & rhs);
 
 Matrix3f operator*(Matrix3f const & lhs, Matrix3f const & rhs);
-Matrix3f operator*(Matrix3f const & lhs, Vector3f const & rhs);
+//Vector3f operator*(Matrix3f const & lhs, Vector3f const & rhs);
 Matrix3f operator*(Matrix3f const & lhs, float rhs);
 
 class AffineTransform {
+ public:
+  // TODO!
 
  private:
   Matrix3f orientation_;

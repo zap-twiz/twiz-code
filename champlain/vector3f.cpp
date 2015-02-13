@@ -56,7 +56,7 @@ Vector3f Vector3f::cross(Vector3f const & rhs) const {
 Vector3f& Vector3f::normalize() {
   float len = length();
   if (len != 0.0f) {
-    *this *= 1 / len;
+    *this *= 1.0f / len;
   }
   return *this;
 }
