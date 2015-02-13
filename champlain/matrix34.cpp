@@ -30,6 +30,29 @@ Matrix3f Matrix3f::RotationZ(float theta) {
 
 }
 
+// Note: Assumes that axis is normalized!
+Matrix3f Matrix3f::FromAxisAngle(Vector3f const & axis, float angle) {
+  float c = cosf(angle);
+  float s = sinf(angle);
+
+  float t = 1 - c;
+  float x = axis.x();
+  float y = axis.y();
+  float z = axis.z();
+#if 0
+  c =cos(angle)
+  s = sin(angle)
+  t =1 - c
+  t*x*x + c	t*x*y - z*s	t*x*z + y*s
+  t*x*y + z*s	t*y*y + c	t*y*z - x*s
+  t*x*z - y*s	t*y*z + x*s	t*z*z + c
+#endif
+
+  return Matrix3f(t*x*x + c, t*x*y - z*s, t*x*z + y*s,
+                  t*x*y + z*s, t*y*y + c, t*y*z - x*s,
+                  t*x*z - y*s, t*y*z + x*s, t*z*z + c);
+}
+
 Matrix3f::Matrix3f(float a11, float a12, float a13,
                    float a21, float a22, float a23,
                    float a31, float a32, float a33) {
@@ -152,7 +175,7 @@ Matrix3f Matrix3f::transpose() const {
   float const m32 = m_[7];
   float const m33 = m_[8];
 
-  Matrix3f result(m11, m21, m23,
+  Matrix3f result(m11, m21, m31,
                   m12, m22, m32,
                   m13, m23, m33);
   return result;
@@ -172,6 +195,14 @@ Matrix3f& Matrix3f::operator*=(Matrix3f const & rhs) {
   }
 
   return *this;
+}
+
+Vector3f Matrix3f::operator*(Vector3f const & rhs) const {
+  float const * rhs_data = rhs.data();
+  return Vector3f(
+      m_[0] * rhs_data[0] + m_[1] * rhs_data[1] + m_[2] * rhs_data[2],
+      m_[3] * rhs_data[0] + m_[4] * rhs_data[1] + m_[5] * rhs_data[2],
+      m_[6] * rhs_data[0] + m_[7] * rhs_data[1] + m_[8] * rhs_data[2]);
 }
 
 Matrix3f& Matrix3f::operator*=(float rhs) {
@@ -204,6 +235,12 @@ Matrix3f operator*(Matrix3f const & lhs, Matrix3f const & rhs) {
   result *= rhs;
   return result;
 }
+
+#if 0
+Vector3f operator*(Matrix3f const & lhs, Vector3f const & rhs) {
+  return lhs.operator*(rhs);
+}
+#endif
 
 Matrix3f operator*(Matrix3f const & lhs, float rhs) {
   Matrix3f result(lhs);

@@ -25,7 +25,8 @@ SOURCES += tst_physics_testtest.cpp \
     ../particle_system.cpp \
     ../random.cpp \
     ../simulation.cpp \
-    ../vector3f.cpp
+    ../vector3f.cpp \
+    quaternion.cpp
 DEFINES += SRCDIR=\\\"$$PWD/\\\"
 
 HEADERS += \
@@ -39,4 +40,5 @@ HEADERS += \
     ../particle_system.h \
     ../random.h \
     ../simulation.h \
-    ../vector3f.h
+    ../vector3f.h \
+    quaternion.h

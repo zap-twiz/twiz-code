@@ -3,8 +3,9 @@
 
 class Vector3f {
  public:
-  explicit Vector3f() : x_(0.0f), y_(0.0f), z_(0.0f) {}
+  Vector3f() : x_(0.0f), y_(0.0f), z_(0.0f) {}
   explicit Vector3f(float x, float y, float z) : x_(x), y_(y), z_(z) {}
+  explicit Vector3f(float* data) : x_(data[0]), y_(data[1]), z_(data[2]) {}
   Vector3f(Vector3f const &rhs);
 
   float& x() { return x_; }
@@ -15,6 +16,9 @@ class Vector3f {
 
   float& z() { return z_; }
   float z() const { return z_; }
+
+  float* data() { return data_; }
+  float const * data() const { return data_; }
 
   Vector3f& operator=(Vector3f const &rhs);
 
@@ -30,7 +34,12 @@ class Vector3f {
   float lengthSquared() const;
 
  private:
-  float x_, y_, z_;
+  union {
+    struct {
+      float x_, y_, z_;
+    };
+    float data_[3];
+  };
 };
 
 Vector3f operator+(Vector3f const &lhs, Vector3f const &rhs);
